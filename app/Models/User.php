@@ -2,47 +2,48 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    protected $connection = 'oracle'; // your DB connection name in config/database.php
+    protected $table = 'LMS.USERS';
+    protected $primaryKey = 'ID';
+    public $timestamps = false;
+
     protected $fillable = [
-        'name',
-        'email',
-        'password',
+        'NAME', 'USERNAME', 'EMAIL', 'USER_PASSWORD',
+        'EMPID', 'REMEMBER_TOKEN', 'CREATED_AT', 'UPDATED_AT',
+        'OFFICE_ID', 'CREATED_BY', 'UPDATED_BY',
+        'ACTIVE', 'ONLINE', 'LAST_LOGIN', 'LAST_SESSION',
+        'FORGETPASS_TOKEN', 'PASSWORD_UPDATEDAT',
+        'DESIGNATION_ROLES_CHECKED', 'PASSWORD_UPDATEDBY',
+        'PASSWORD_FORCE_RESET', 'OTP', 'OTP_SENT_AT',
+        'OTP_EXPIRY', 'OTP_VERIFIED',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
-        'password',
-        'remember_token',
+        'USER_PASSWORD', 'REMEMBER_TOKEN', 'FORGETPASS_TOKEN', 'OTP',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+   
+    public function getAuthPassword()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->USER_PASSWORD;
+    }
+
+   
+    public function getAuthIdentifierName()
+    {
+        return 'EMAIL';
+    }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'LMS.ROLE_USER', 'USER_ID', 'ROLE_ID');
     }
 }

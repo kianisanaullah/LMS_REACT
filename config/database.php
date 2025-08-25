@@ -111,6 +111,18 @@ return [
             // 'encrypt' => env('DB_ENCRYPT', 'yes'),
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
+        'oracle' => [
+    'driver'   => 'oracle',
+    'tns'      => env('DB_TNS', ''),
+    'host'     => env('DB_HOST', '192.168.88.241'),
+    'port'     => env('DB_PORT', '1521'),
+    'database' => env('DB_SERVICE_NAME', 'orcl'),
+    'username' => env('DB_USERNAME', 'new_dev_mahrukh'),
+    'password' => env('DB_PASSWORD', ''),
+    'charset'  => env('DB_CHARSET', 'AL32UTF8'),
+    'prefix'   => env('DB_PREFIX', ''),
+],
+
 
     ],
 

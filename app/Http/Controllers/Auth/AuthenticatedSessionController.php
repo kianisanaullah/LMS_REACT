@@ -1,51 +1,67 @@
-<?php
+<?php 
 
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Show the login page.
-     */
     public function create(Request $request): Response
     {
         return Inertia::render('auth/login', [
-            'canResetPassword' => Route::has('password.request'),
+            'canResetPassword' => true,
             'status' => $request->session()->get('status'),
         ]);
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(Request $request)
     {
-        $request->authenticate();
+        
+       
+        $request->validate([
+            'EMAIL'    => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
 
-        $request->session()->regenerate();
+        Log::info('Login attempt started', [
+            'email' => $request->EMAIL,
+        ]);
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        if (Auth::attempt([
+            'EMAIL'    => $request->EMAIL,
+            'password' => $request->password,
+        ])) {
+            Log::info('Login successful', [
+                'email' => $request->EMAIL,
+            ]);
+            
+            $request->session()->regenerate();
+            return redirect()->intended(route('dashboard'));
+        }
+
+        Log::warning('Login failed', [
+            'email' => $request->EMAIL,
+        ]);
+
+
+        return back()->withErrors([
+            'EMAIL' => 'Invalid credentials.',
+        ]);
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request)
     {
         Auth::guard('web')->logout();
-
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        Log::info('User logged out');
+
+        return redirect()->route('login');
     }
 }
