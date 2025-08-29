@@ -41,7 +41,7 @@ Route::get('dashboard', function (\Illuminate\Http\Request $request) {
     return Inertia::render('dashboard', [
         'user_id' => $request->query('user_id'),
     ]);
-})->middleware(['auth','verified','mlc_auth'])->name('dashboard');
+})->middleware(['auth','verified'])->name('dashboard');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
