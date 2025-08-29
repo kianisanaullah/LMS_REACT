@@ -23,34 +23,34 @@ class RegisteredUserController extends Controller
 
    public function store(Request $request): RedirectResponse
 {
-   $request->validate([
-    'email' => [
-        'required',
-        'string',
-        'email',
-        'max:255',
-        Rule::unique('oracle.USERS', 'EMAIL') 
-    ],
-    'USERNAME' => [
-        'required',
-        'string',
-        'max:255',
-        Rule::unique('oracle.USERS', 'USERNAME') 
-    ],
-    'USER_PASSWORD' => [
-        'required',
-        'string',
-        'min:8',
-    ],
-]);
+//   $request->validate([
+//    'email' => [
+//        'required',
+//        'string',
+//        'email',
+//        'max:255',
+//        Rule::unique('oracle.LMS.USERS', 'EMAIL')
+//    ],
+//    'USERNAME' => [
+//        'required',
+//        'string',
+//        'max:255',
+//        Rule::unique('oracle.LMS.USERS', 'USERNAME')
+//    ],
+//    'USER_PASSWORD' => [
+//        'required',
+//        'string',
+//        'min:8',
+//    ],
+//]);
 
 
     $user = User::create([
-        'NAME'           => $request->name,
-        'USERNAME'       => $request->username,
-        'EMAIL'          => $request->email,
-        'USER_PASSWORD'  => Hash::make($request->password),
-        'REMEMBER_TOKEN' => Str::random(60),
+        'name'           => $request->name,
+        'username'       => $request->username,
+        'email'          => $request->email,
+        'password'  => hash::make($request->password),
+        'remember_token' => str::random(60),
     ]);
 
     event(new Registered($user));

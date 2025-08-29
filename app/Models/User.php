@@ -11,35 +11,36 @@ class User extends Authenticatable
     use HasApiTokens, Notifiable;
 
     protected $connection = 'oracle'; // your DB connection name in config/database.php
-    protected $table = 'LMS.USERS';
+    protected $table = 'MLC.USERS';
     protected $primaryKey = 'ID';
     public $timestamps = false;
+//    protected $guarded=[];
 
     protected $fillable = [
-        'NAME', 'USERNAME', 'EMAIL', 'USER_PASSWORD',
-        'EMPID', 'REMEMBER_TOKEN', 'CREATED_AT', 'UPDATED_AT',
-        'OFFICE_ID', 'CREATED_BY', 'UPDATED_BY',
-        'ACTIVE', 'ONLINE', 'LAST_LOGIN', 'LAST_SESSION',
-        'FORGETPASS_TOKEN', 'PASSWORD_UPDATEDAT',
-        'DESIGNATION_ROLES_CHECKED', 'PASSWORD_UPDATEDBY',
-        'PASSWORD_FORCE_RESET', 'OTP', 'OTP_SENT_AT',
-        'OTP_EXPIRY', 'OTP_VERIFIED',
+        'name', 'username', 'email', 'lms_password',
+        'empid', 'remember_token', 'created_at', 'updated_at',
+        'office_id', 'created_by', 'updated_by',
+        'active', 'online', 'last_login', 'last_session',
+        'forgetpass_token', 'password_updatedat',
+        'designation_roles_checked', 'password_updatedby',
+        'password_force_reset', 'otp', 'otp_sent_at',
+        'otp_expiry', 'otp_verified',
     ];
 
     protected $hidden = [
-        'USER_PASSWORD', 'REMEMBER_TOKEN', 'FORGETPASS_TOKEN', 'OTP',
+        'lms_password', 'remember_token', 'forgetpass_token', 'otp',
     ];
 
-   
+
     public function getAuthPassword()
     {
-        return $this->USER_PASSWORD;
+        return $this->lms_password;
     }
 
-   
+
     public function getAuthIdentifierName()
     {
-        return 'EMAIL';
+        return 'email';
     }
 
     public function roles()

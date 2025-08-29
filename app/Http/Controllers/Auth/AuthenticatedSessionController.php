@@ -1,10 +1,12 @@
-<?php 
+<?php
 
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,36 +23,34 @@ class AuthenticatedSessionController extends Controller
 
     public function store(Request $request)
     {
-        
-       
+
         $request->validate([
-            'EMAIL'    => ['required', 'email'],
+            'email'    => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
 
         Log::info('Login attempt started', [
-            'email' => $request->EMAIL,
+            'email' => $request->email,
         ]);
-
         if (Auth::attempt([
-            'EMAIL'    => $request->EMAIL,
-            'password' => $request->password,
+            'email' => $request->email,
+            'password' =>$request->password,
         ])) {
             Log::info('Login successful', [
-                'email' => $request->EMAIL,
+                'email' => $request->email,
             ]);
-            
+
             $request->session()->regenerate();
             return redirect()->intended(route('dashboard'));
         }
 
         Log::warning('Login failed', [
-            'email' => $request->EMAIL,
+            'email' => $request->email,
         ]);
 
 
         return back()->withErrors([
-            'EMAIL' => 'Invalid credentials.',
+            'email' => 'Invalid credentials.',
         ]);
     }
 

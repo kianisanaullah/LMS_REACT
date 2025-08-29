@@ -32,18 +32,18 @@ export default function Login({ status, canResetPassword }: LoginProps) {
       <div className="grid gap-6">
         {/* Email */}
         <div className="grid gap-2">
-          <Label htmlFor="EMAIL">Email</Label>
+          <Label htmlFor="email">Email</Label>
           <Input
-            id="EMAIL"
+            id="email"
             type="email"
-            name="EMAIL"   // ✅ match Laravel validation
+            name="email"   // ✅ match Laravel validation
             required
             autoFocus
             tabIndex={1}
             autoComplete="username"
             placeholder="email@example.com"
           />
-          <InputError message={errors.EMAIL} /> {/* ✅ now will show error */}
+          <InputError message={errors.email} /> {/* ✅ now will show error */}
         </div>
 
         {/* Password */}
