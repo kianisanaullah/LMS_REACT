@@ -11,13 +11,13 @@ class User extends Authenticatable
     use HasApiTokens, Notifiable;
 
     protected $connection = 'oracle'; // your DB connection name in config/database.php
-    protected $table = 'MLC.USERS';
+    protected $table = 'LMS.USERS';
     protected $primaryKey = 'ID';
     public $timestamps = false;
 //    protected $guarded=[];
 
     protected $fillable = [
-        'name', 'username', 'email', 'lms_password',
+        'name', 'username', 'email', 'password',
         'empid', 'remember_token', 'created_at', 'updated_at',
         'office_id', 'created_by', 'updated_by',
         'active', 'online', 'last_login', 'last_session',
@@ -28,13 +28,13 @@ class User extends Authenticatable
     ];
 
     protected $hidden = [
-        'lms_password', 'remember_token', 'forgetpass_token', 'otp',
+        'password', 'remember_token', 'forgetpass_token', 'otp',
     ];
 
 
     public function getAuthPassword()
     {
-        return $this->lms_password;
+        return $this->password;
     }
 
 
