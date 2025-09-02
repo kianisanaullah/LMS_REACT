@@ -47,4 +47,5 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Role::class, 'LMS.ROLE_USER', 'USER_ID', 'ROLE_ID');
     }
+    
 }

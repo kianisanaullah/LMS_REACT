@@ -13,7 +13,13 @@ const mainNavItems: NavItem[] = [
         href: '/dashboard',
         icon: LayoutGrid,
     },
+    {
+        title: 'Courses',
+        href: '/courses',
+        icon: BookOpen, // you can pick another icon like GraduationCap
+    },
 ];
+
 
 const footerNavItems: NavItem[] = [
     {
