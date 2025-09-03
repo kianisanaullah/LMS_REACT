@@ -6,6 +6,8 @@ use App\Models\Course;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+
 
 class CourseController extends Controller
 {
@@ -56,48 +58,62 @@ class CourseController extends Controller
         return response()->json($course, 201);
     }
 
-public function update(Request $request, $id)
+
+    public function update(Request $request, $id)
 {
-    $request->validate([
-        'COURSE_NAME' => 'required|string|max:255',
-        'DESCRIPTION' => 'nullable|string',
-        'SHORT_NAME'  => 'nullable|string|max:50',
-    ]);
+    // Prepare update data
+    $data = [
+        'UPDATED_BY' => auth()->user()->id ?? 1,
+        'UPDATED_AT' => now()->format('Y-m-d H:i:s'), // Oracle expects proper datetime format
+    ];
 
-    $userId = auth()->user()->id;
-
-    $course = Course::where('ID', $id)
-                    ->where('USER_ID', $userId)
-                    ->whereNull('DELETED_AT')
-                    ->firstOrFail();
-
-    $course->course_name = $request->input('COURSE_NAME'); 
-    $course->description = $request->input('DESCRIPTION'); 
-    $course->short_name  = $request->input('SHORT_NAME');  
-    $course->updated_by  = $userId;                        
-    $course->updated_at  = now();
-
-    $course->save();
-
-    return response()->json($course);
-}
-
-
-
-
-    public function destroy($id)
-    {
-        $userId = auth()->user()->id;
-
-        $course = Course::where('ID', $id)
-                        ->where('USER_ID', $userId)
-                        ->whereNull('DELETED_AT')
-                        ->firstOrFail();
-
-        $course->softDelete($userId); // ✅ Works now
-
-        return response()->json(['message' => 'Course deleted successfully']);
+    if ($request->has('COURSE_NAME')) {
+        $data['COURSE_NAME'] = $request->COURSE_NAME;
+    }
+    if ($request->has('SHORT_NAME')) {
+        $data['SHORT_NAME'] = $request->SHORT_NAME;
+    }
+    if ($request->has('DESCRIPTION')) {
+        $data['DESCRIPTION'] = $request->DESCRIPTION;
     }
 
+    // Run update
+    $updated = \DB::table('LMS.COURSES')
+        ->where('ID', $id)
+        ->update($data);
 
+    if (!$updated) {
+        return response()->json(['error' => 'Course not found'], 404);
+    }
+
+    // Fetch updated course
+    $course = \DB::table('LMS.COURSES')
+        ->where('ID', $id)
+        ->first();
+
+    return response()->json($course, 200);
 }
+
+
+
+
+
+   public function destroy($id)
+{
+    $data = [
+        'DELETED_BY' => auth()->user()->id  ?? 1,
+        'DELETED_AT' => now()->format('Y-m-d H:i:s'),
+    ];
+
+    $deleted = \DB::table('LMS.COURSES')
+        ->where('ID', $id)
+        ->update($data);
+
+    if (!$deleted) {
+        return response()->json(['error' => 'Course not found'], 404);
+    }
+
+    return response()->json(['message' => 'Course deleted successfully']);
+}
+}
+

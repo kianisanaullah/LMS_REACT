@@ -36,7 +36,6 @@ class Course extends Model
         return $this->belongsTo(User::class, 'USER_ID', 'ID');
     }
 
-    // ✅ Add manual soft delete method
     public function softDelete($userId)
     {
         $this->DELETED_BY = $userId;
