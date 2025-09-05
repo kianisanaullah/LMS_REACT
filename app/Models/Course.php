@@ -23,12 +23,15 @@ class Course extends Model
         'DELETED_BY',
         'DELETED_AT',
         'USER_ID',
+        'ATTACHMENTS',  
     ];
 
     protected $casts = [
         'CREATED_AT' => 'datetime',
         'UPDATED_AT' => 'datetime',
         'DELETED_AT' => 'datetime',
+
+        'ATTACHMENTS' => 'string', 
     ];
 
     public function user()

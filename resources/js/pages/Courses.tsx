@@ -13,54 +13,69 @@ interface Course {
   COURSE_NAME: string;
   SHORT_NAME: string;
   DESCRIPTION?: string;
+  ATTACHMENTS?: string | null;   // stored filename in DB
+  ATTACHMENT_URL?: string | null; // ✅ full URL for frontend use
 }
 
+
+type FormState = {
+  id: number | null;
+  COURSE_NAME: string;
+  SHORT_NAME: string;
+  DESCRIPTION: string;
+  ATTACHMENTS: File | string | null; // ✅ file object for upload
+};
+
 const breadcrumbs: BreadcrumbItem[] = [
-  {
-    title: "Dashboard",
-    href: "/dashboard",
-  },
-  {
-    title: "Courses",
-    href: "/courses",
-  },
+  { title: "Dashboard", href: "/dashboard" },
+  { title: "Courses", href: "/courses" },
 ];
 
 export default function Courses() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-   // modal
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
 
-  const [form, setForm] = useState({
-    id: null as number | null,
+  const [form, setForm] = useState<FormState>({
+    id: null,
     COURSE_NAME: "",
     SHORT_NAME: "",
     DESCRIPTION: "",
+    ATTACHMENTS: null,
   });
-  const [errors, setErrors] = useState<Partial<typeof form>>({});
+
+  const [errors, setErrors] = useState<Partial<FormState>>({});
   const [processing, setProcessing] = useState(false);
 
   function mapCourse(c: any): Course {
+  const file = c.ATTACHMENTS ?? c.attachments ?? null;
   return {
     ID: c.ID ?? c.id,
     COURSE_NAME: c.COURSE_NAME ?? c.course_name,
     SHORT_NAME: c.SHORT_NAME ?? c.short_name,
     DESCRIPTION: c.DESCRIPTION ?? c.description,
+    ATTACHMENTS: file,
+   ATTACHMENT_URL: c.attachment_url ?? (file ? `/storage/${file}` : null),
+
   };
 }
 
 
   useEffect(() => {
-  axios.get("/courses/list").then((res) => {
-    setCourses(res.data.map(mapCourse));
-  })
-  .finally(() => setLoading(false)); // mark loading complete
-}, []);
-
+    axios
+      .get("/courses/list")
+      .then((res) => setCourses(res.data.map(mapCourse)))
+      .finally(() => setLoading(false));
+  }, []);
 
   const resetForm = () => {
-    setForm({ id: null, COURSE_NAME: "", SHORT_NAME: "", DESCRIPTION: "" });
+    setForm({
+      id: null,
+      COURSE_NAME: "",
+      SHORT_NAME: "",
+      DESCRIPTION: "",
+      ATTACHMENTS: null,
+    });
     setErrors({});
   };
 
@@ -69,43 +84,41 @@ export default function Courses() {
     setProcessing(true);
     setErrors({});
 
-    if (form.id) {
-      // Update
-      axios
-        .put(`/courses/${form.id}`, {
-          COURSE_NAME: form.COURSE_NAME,
-          SHORT_NAME: form.SHORT_NAME,
-          DESCRIPTION: form.DESCRIPTION,
-        })
-        .then((res) => {
-          const updated = mapCourse(res.data);
-          setCourses((prev) =>
-            prev.map((c) => (c.ID === form.id ? updated : c))
-          );
-          resetForm();
-        })
-        .catch((err) => {
-          setErrors(err.response?.data?.errors || {});
-        })
-        .finally(() => setProcessing(false));
-    } else {
-      // Create
-     axios
-  .post("/courses", {
-    COURSE_NAME: form.COURSE_NAME,
-    SHORT_NAME: form.SHORT_NAME,
-    DESCRIPTION: form.DESCRIPTION,
-  })
-  .then((res) => {
-    setCourses((prev) => [mapCourse(res.data), ...prev]); // prepend instead of append
-    resetForm();
-  })
-  .catch((err) => {
-    setErrors(err.response?.data?.errors || {});
-  })
-  .finally(() => setProcessing(false));
+    const formData = new FormData();
+    formData.append("COURSE_NAME", form.COURSE_NAME);
+    formData.append("SHORT_NAME", form.SHORT_NAME);
+    formData.append("DESCRIPTION", form.DESCRIPTION);
 
+    if (form.ATTACHMENTS) {
+      formData.append("ATTACHMENTS", form.ATTACHMENTS);
     }
+
+  let request;
+
+if (form.id) {
+  formData.append("_method", "PUT"); // 👈 spoof method
+  request = axios.post(`/courses/${Number(form.id)}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+} else {
+  request = axios.post("/courses", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+}
+
+
+
+
+    request
+      .then((res) => {
+        const updated = mapCourse(res.data);
+        setCourses((prev) =>
+          form.id ? prev.map((c) => (c.ID === form.id ? updated : c)) : [updated, ...prev]
+        );
+        resetForm();
+      })
+      .catch((err) => setErrors(err.response?.data?.errors || {}))
+      .finally(() => setProcessing(false));
   };
 
   const handleEdit = (course: Course) => {
@@ -114,6 +127,8 @@ export default function Courses() {
       COURSE_NAME: course.COURSE_NAME,
       SHORT_NAME: course.SHORT_NAME,
       DESCRIPTION: course.DESCRIPTION ?? "",
+      ATTACHMENTS: null, // only set when user uploads new file
+
     });
   };
 
@@ -124,188 +139,223 @@ export default function Courses() {
     });
   };
 
-  return (
-    <AppLayout breadcrumbs={breadcrumbs}>
-      <Head title="Courses Management" />
 
-      <div className="p-6">
-        <h2 className="text-xl font-bold mb-4">Courses Management</h2>
+return (
+  <AppLayout breadcrumbs={breadcrumbs}>
+    <Head title="Courses Management" />
 
-       {/* Form */}
-<form
-  onSubmit={handleSubmit}
-  className="space-y-3 mb-6 border p-4 rounded"
->
-  <div>
-    <Label htmlFor="course_name">Course Name</Label>
-    <Input
-      id="course_name"
-      type="text"
-      value={form.COURSE_NAME}
-      onChange={(e) =>
-        setForm({ ...form, COURSE_NAME: e.target.value })
-      }
-      required
-      className="focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400"
-    />
-    <InputError message={errors.COURSE_NAME} />
-  </div>
+    <div className="p-6">
+      <h2 className="text-xl font-bold mb-4">Courses Management</h2>
 
-  <div>
-    <Label htmlFor="short_name">Short Name</Label>
-    <Input
-      id="short_name"
-      type="text"
-      value={form.SHORT_NAME}
-      onChange={(e) =>
-        setForm({ ...form, SHORT_NAME: e.target.value })
-      }
-      className="focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400"
-    />
-    <InputError message={errors.SHORT_NAME} />
-  </div>
-
-  <div>
-    <Label htmlFor="description">Description</Label>
-    <textarea
-      id="description"
-      value={form.DESCRIPTION}
-      onChange={(e) =>
-        setForm({ ...form, DESCRIPTION: e.target.value })
-      }
-      rows={4}
-      className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400"
-    />
-    <InputError message={errors.DESCRIPTION} />
-  </div>
-
-  <Button type="submit" disabled={processing}>
-    {form.id ? "Update Course" : "Add Course"}
-  </Button>
-
-  {form.id && (
-    <Button
-      type="button"
-      variant="secondary"
-      className="ml-2"
-      onClick={resetForm}
-    >
-      Cancel
-    </Button>
-  )}
-</form>
-
-    {/* Table */}
-        <table className="w-full border-collapse border rounded-lg shadow-md overflow-hidden">
-          <thead>
-            <tr className="bg-gray-100 text-sm font-semibold text-gray-700">
-              <th className="border px-4 py-2 text-center w-16">ID</th>
-              <th className="border px-4 py-2 text-left w-64">Course Name</th>
-              <th className="border px-4 py-2 text-left w-40">Short Name</th>
-              <th className="border px-4 py-2 text-center w-60">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={4} className="text-center p-4">
-                  Loading courses...
-                </td>
-              </tr>
-            ) : courses.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="text-center p-4">
-                  No courses found
-                </td>
-              </tr>
-            ) : (
-              courses.map((course) => (
-                <tr
-                  key={course.ID}
-                  className="text-sm odd:bg-white even:bg-gray-50 hover:bg-gray-100 transition"
-                >
-                  <td className="border px-3 py-2 text-center">{course.ID}</td>
-                  <td
-                    className="border px-3 py-2 text-left w-64 max-w-xs truncate"
-                    title={course.COURSE_NAME}
-                  >
-                    {course.COURSE_NAME}
-                  </td>
-                  <td className="border px-3 py-2 text-left">{course.SHORT_NAME}</td>
-                  <td className="border px-3 py-2 text-center">
-                    <div className="flex justify-center gap-2">
-                      {/* Edit Button */}
-                      <button
-                        onClick={() => handleEdit(course)}
-                        className="px-3 py-1 rounded-md text-white text-sm bg-blue-600 hover:bg-blue-500 transition"
-                      >
-                        Edit
-                      </button>
-
-                      {/* Delete Button */}
-                      <button
-                        onClick={() => handleDelete(course.ID)}
-                        className="px-3 py-1 rounded-md text-white text-sm bg-red-600 hover:bg-red-500 transition"
-                      >
-                        Delete
-                      </button>
-
-                      {/* View Button */}
-                      <button
-                        onClick={() => setSelectedCourse(course)}
-                        className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"
-                      >
-                        View
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-       {selectedCourse && (
-  <div
-    className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-30 backdrop-blur-sm z-50 p-4"
-    onClick={() => setSelectedCourse(null)} // close when clicking outside
-  >
-    <div
-      className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6 relative"
-      onClick={(e) => e.stopPropagation()} // prevent close when clicking inside
-    >
-      {/* Close Button */}
-      <button
-        className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
-        onClick={() => setSelectedCourse(null)}
+      {/* Form */}
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-3 mb-6 border p-4 rounded"
+        encType="multipart/form-data"
       >
-        ✕
-      </button>
+        {/* Course Name */}
+        <div>
+          <Label htmlFor="course_name">Course Name</Label>
+          <Input
+            id="course_name"
+            type="text"
+            value={form.COURSE_NAME}
+            onChange={(e) => setForm({ ...form, COURSE_NAME: e.target.value })}
+            required
+            className="focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400"
+          />
+          <InputError message={errors.COURSE_NAME} />
+        </div>
 
-      <h3 className="text-xl font-bold mb-4 text-center">Course Details</h3>
+        {/* Short Name */}
+        <div>
+          <Label htmlFor="short_name">Short Name</Label>
+          <Input
+            id="short_name"
+            type="text"
+            value={form.SHORT_NAME}
+            onChange={(e) => setForm({ ...form, SHORT_NAME: e.target.value })}
+            className="focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400"
+          />
+          <InputError message={errors.SHORT_NAME} />
+        </div>
 
-      <div className="space-y-3">
+        {/* Description */}
         <div>
-          <p className="text-sm font-semibold text-gray-600">Course Name</p>
-          <p className="text-gray-800">{selectedCourse.COURSE_NAME}</p>
+          <Label htmlFor="description">Description</Label>
+          <textarea
+            id="description"
+            value={form.DESCRIPTION}
+            onChange={(e) => setForm({ ...form, DESCRIPTION: e.target.value })}
+            rows={4}
+            className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400"
+          />
+          <InputError message={errors.DESCRIPTION} />
         </div>
+
+        {/* Attachments */}
         <div>
-          <p className="text-sm font-semibold text-gray-600">Short Name</p>
-          <p className="text-gray-800">{selectedCourse.SHORT_NAME}</p>
+          <Label htmlFor="attachments">Attachments</Label>
+          <input
+            id="attachments"
+            type="file"
+            onChange={(e) =>
+              setForm({ ...form, ATTACHMENTS: e.target.files?.[0] || null })
+            }
+            className="w-full border rounded px-3 py-2 text-sm file:mr-4 file:py-2 file:px-4 
+                       file:rounded file:border-0 file:text-sm file:font-semibold 
+                       file:bg-gray-100 file:text-gray-700 
+                       hover:file:bg-gray-200 focus:outline-none focus:ring-2 
+                       focus:ring-gray-400 focus:border-gray-400"
+          />
         </div>
-        <div>
-          <p className="text-sm font-semibold text-gray-600">Description</p>
-          <p className="text-gray-800 whitespace-pre-line">
-            {selectedCourse.DESCRIPTION || "No description available"}
-          </p>
-        </div>
-      </div>
+
+        <Button type="submit" disabled={processing}>
+          {form.id ? "Update Course" : "Add Course"}
+        </Button>
+        {form.id && (
+          <Button
+            type="button"
+            variant="secondary"
+            className="ml-2"
+            onClick={resetForm}
+          >
+            Cancel
+          </Button>
+        )}
+      </form>
+
+      {/* Table */}
+      <table className="w-full border-collapse border rounded-lg shadow-md overflow-hidden">
+        <thead>
+          <tr className="bg-gray-100 text-sm font-semibold text-gray-700">
+            <th className="border px-4 py-2 text-center w-16">ID</th>
+            <th className="border px-4 py-2 text-left w-64">Course Name</th>
+            <th className="border px-4 py-2 text-left w-40">Short Name</th>
+            <th className="border px-4 py-2 text-left w-40">Attachments</th>
+            <th className="border px-4 py-2 text-center w-60">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading ? (
+            <tr>
+              <td colSpan={5} className="text-center p-4">
+                Loading courses...
+              </td>
+            </tr>
+          ) : courses.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="text-center p-4">
+                No courses found
+              </td>
+            </tr>
+          ) : (
+            courses.map((course) => (
+              <tr
+                key={course.ID}
+                className="text-sm odd:bg-white even:bg-gray-50 hover:bg-gray-100 transition"
+              >
+                <td className="border px-3 py-2 text-center">{course.ID}</td>
+                <td
+                  className="border px-3 py-2 text-left w-64 max-w-xs truncate"
+                  title={course.COURSE_NAME}
+                >
+                  {course.COURSE_NAME}
+                </td>
+                <td className="border px-3 py-2 text-left">
+                  {course.SHORT_NAME}
+                </td>
+                <td className="border px-3 py-2 text-center">
+                  {course.ATTACHMENT_URL ? (
+                    <a
+                      href={course.ATTACHMENT_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 rounded-md text-white text-sm bg-green-600 hover:bg-green-500 transition"
+                    >
+                      Open File
+                    </a>
+                  ) : (
+                    <span className="text-gray-400">No File</span>
+                  )}
+                </td>
+                <td className="border px-3 py-2 text-center">
+                  <div className="flex justify-center gap-2">
+                    {/* Edit Button */}
+                    <button
+                      onClick={() => handleEdit(course)}
+                      className="px-3 py-1 rounded-md text-white text-sm bg-blue-600 hover:bg-blue-500 transition"
+                    >
+                      Edit
+                    </button>
+
+                    {/* Delete Button */}
+                    <button
+                      onClick={() => handleDelete(course.ID)}
+                      className="px-3 py-1 rounded-md text-white text-sm bg-red-600 hover:bg-red-500 transition"
+                    >
+                      Delete
+                    </button>
+
+                    {/* View Button */}
+                    <button
+                      onClick={() => setSelectedCourse(course)}
+                      className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"
+                    >
+                      View
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
-  </div>
-)}
 
+    {/* Modal for Course Details */}
+    {selectedCourse && (
+      <div
+        className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-30 backdrop-blur-sm z-50 p-4"
+        onClick={() => setSelectedCourse(null)} // close when clicking outside
+      >
+        <div
+          className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[85vh] overflow-y-auto p-6 relative"
+          onClick={(e) => e.stopPropagation()} // prevent close when clicking inside
+        >
+          {/* Close Button */}
+          <button
+            className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+            onClick={() => setSelectedCourse(null)}
+          >
+            ✕
+          </button>
+
+          <h3 className="text-xl font-bold mb-4 text-center">Course Details</h3>
+
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-600">Course Name</p>
+              <p className="text-gray-800">{selectedCourse.COURSE_NAME}</p>
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold text-gray-600">Short Name</p>
+              <p className="text-gray-800">{selectedCourse.SHORT_NAME}</p>
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold text-gray-600">Description</p>
+              <p className="text-gray-800 whitespace-pre-line">
+                {selectedCourse.DESCRIPTION || "No description available"}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
-    </AppLayout>
-  );
+    )}
+  </AppLayout>
+);
+
 }
+

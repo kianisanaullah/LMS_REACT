@@ -15,12 +15,11 @@ Route::get('/', function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/courses', [CourseController::class, 'indexPage'])->name('courses.index');
 
-    // API routes (for React axios) inside web.php so session works
     Route::get('/courses/list', [CourseController::class, 'index']);
     Route::get('/courses/{id}', [CourseController::class, 'show']);
     Route::post('/courses', [CourseController::class, 'store']);
-    Route::put('/courses/{id}', [CourseController::class, 'update']);
-    Route::delete('/courses/{id}', [CourseController::class, 'destroy']);
+    Route::put('/courses/{id}', [CourseController::class, 'update']);   // ✅ real PUT
+    Route::delete('/courses/{id}', [CourseController::class, 'destroy']); // ✅ delete
 });
 
 // Debug Oracle users (remove in production!)
