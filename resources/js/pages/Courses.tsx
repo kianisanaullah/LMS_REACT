@@ -238,95 +238,99 @@ return (
         )}
       </form>
 
-      {/* Table */}
-      <table className="w-full border-collapse border rounded-lg shadow-md overflow-hidden">
-        <thead>
-          <tr className="bg-gray-100 text-sm font-semibold text-gray-700">
-            <th className="border px-4 py-2 text-center w-16">ID</th>
-            <th className="border px-4 py-2 text-left w-64">Course Name</th>
-            <th className="border px-4 py-2 text-left w-40">Short Name</th>
-            <th className="border px-4 py-2 text-left w-40">Attachments</th>
-            <th className="border px-4 py-2 text-center w-60">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading ? (
-            <tr>
-              <td colSpan={5} className="text-center p-4">
-                Loading courses...
-              </td>
-            </tr>
-          ) : courses.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="text-center p-4">
-                No courses found
-              </td>
-            </tr>
-          ) : (
-            courses.map((course) => (
-              <tr
-                key={course.ID}
-                className="text-sm odd:bg-white even:bg-gray-50 hover:bg-gray-100 transition"
+     
+{/* Table */}
+<table className="w-full border-collapse border rounded-lg shadow-md overflow-hidden">
+  <thead>
+    <tr className="bg-gray-100 dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200">
+      <th className="border px-4 py-2 text-center w-16">ID</th>
+      <th className="border px-4 py-2 text-left w-64">Course Name</th>
+      <th className="border px-4 py-2 text-left w-40">Short Name</th>
+      <th className="border px-4 py-2 text-left w-40">Attachments</th>
+      <th className="border px-4 py-2 text-center w-60">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {loading ? (
+      <tr>
+        <td colSpan={5} className="text-center p-4">
+          Loading courses...
+        </td>
+      </tr>
+    ) : courses.length === 0 ? (
+      <tr>
+        <td colSpan={5} className="text-center p-4">
+          No courses found
+        </td>
+      </tr>
+    ) : (
+      courses.map((course) => (
+        <tr
+          key={course.ID}
+          className="text-sm odd:bg-white even:bg-gray-50 hover:bg-gray-100 
+                     dark:odd:bg-gray-900 dark:even:bg-gray-800 dark:hover:bg-gray-700 
+                     transition"
+        >
+          <td className="border px-3 py-2 text-center">{course.ID}</td>
+          <td
+            className="border px-3 py-2 text-left w-64 max-w-xs truncate"
+            title={course.COURSE_NAME}
+          >
+            {course.COURSE_NAME}
+          </td>
+          <td className="border px-3 py-2 text-left">
+            {course.SHORT_NAME}
+          </td>
+          <td className="border px-3 py-2 text-center">
+            {course.ATTACHMENT_URL ? (
+              <a
+                href={course.ATTACHMENT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1 rounded-md text-white text-sm bg-green-600 hover:bg-green-500 transition"
               >
-                <td className="border px-3 py-2 text-center">{course.ID}</td>
-                <td
-                  className="border px-3 py-2 text-left w-64 max-w-xs truncate"
-                  title={course.COURSE_NAME}
-                >
-                  {course.COURSE_NAME}
-                </td>
-                <td className="border px-3 py-2 text-left">
-                  {course.SHORT_NAME}
-                </td>
-                <td className="border px-3 py-2 text-center">
-                  {course.ATTACHMENT_URL ? (
-                    <a
-                      href={course.ATTACHMENT_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1 rounded-md text-white text-sm bg-green-600 hover:bg-green-500 transition"
-                    >
-                      Open File
-                    </a>
-                  ) : (
-                    <span className="text-gray-400">No File</span>
-                  )}
-                </td>
-                <td className="border px-3 py-2 text-center">
-                  <div className="flex justify-center gap-2">
-                    {/* Edit Button */}
-                    <button
-                      onClick={() => handleEdit(course)}
-                      className="px-3 py-1 rounded-md text-white text-sm bg-blue-600 hover:bg-blue-500 transition"
-                    >
-                      Edit
-                    </button>
+                Open File
+              </a>
+            ) : (
+              <span className="text-gray-400 dark:text-gray-500">No File</span>
+            )}
+          </td>
+          <td className="border px-3 py-2 text-center">
+            <div className="flex justify-center gap-2">
+              {/* Edit Button */}
+              <button
+                onClick={() => handleEdit(course)}
+                className="px-3 py-1 rounded-md text-white text-sm bg-blue-600 hover:bg-blue-500 transition"
+              >
+                Edit
+              </button>
 
-                    {/* Delete Button */}
-                    <button
-                      onClick={() => handleDelete(course.ID)}
-                      className="px-3 py-1 rounded-md text-white text-sm bg-red-600 hover:bg-red-500 transition"
-                    >
-                      Delete
-                    </button>
+              {/* Delete Button */}
+              <button
+                onClick={() => handleDelete(course.ID)}
+                className="px-3 py-1 rounded-md text-white text-sm bg-red-600 hover:bg-red-500 transition"
+              >
+                Delete
+              </button>
 
-                    {/* View Button */}
-                    <button
-                      onClick={() => setSelectedCourse(course)}
-                      className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"
-                    >
-                      View
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+              {/* View Button */}
+              <button
+                onClick={() => setSelectedCourse(course)}
+                className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"
+              >
+                View
+              </button>
+            </div>
+          </td>
+        </tr>
+      ))
+    )}
+  </tbody>
+</table>
+
     </div>
 
- <Modal
+<Modal
   isOpen={!!selectedCourse}
   onClose={() => setSelectedCourse(null)}
   title="Course Details"
@@ -335,24 +339,35 @@ return (
   {selectedCourse && (
     <div className="space-y-3">
       <div>
-        <p className="text-sm font-semibold text-gray-600">Course Name</p>
-        <p className="text-gray-800">{selectedCourse.COURSE_NAME}</p>
+        <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+          Course Name
+        </p>
+        <p className="text-gray-800 dark:text-gray-100">
+          {selectedCourse.COURSE_NAME}
+        </p>
       </div>
 
       <div>
-        <p className="text-sm font-semibold text-gray-600">Short Name</p>
-        <p className="text-gray-800">{selectedCourse.SHORT_NAME}</p>
+        <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+          Short Name
+        </p>
+        <p className="text-gray-800 dark:text-gray-100">
+          {selectedCourse.SHORT_NAME}
+        </p>
       </div>
 
       <div>
-        <p className="text-sm font-semibold text-gray-600">Description</p>
-        <p className="text-gray-800 whitespace-pre-line">
+        <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+          Description
+        </p>
+        <p className="text-gray-800 dark:text-gray-100 whitespace-pre-line">
           {selectedCourse.DESCRIPTION || "No description available"}
         </p>
       </div>
     </div>
   )}
 </Modal>
+
   </AppLayout>
 );
 

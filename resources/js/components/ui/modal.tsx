@@ -19,16 +19,18 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-30 backdrop-blur-sm z-50 p-4"
+      className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 dark:bg-opacity-70 backdrop-blur-sm z-50 p-4"
       onClick={onClose} // close when clicking outside
     >
       <div
-        className={`bg-white rounded-lg shadow-lg w-full ${widthClass} max-h-[85vh] overflow-y-auto p-6 relative`}
+        className={`w-full ${widthClass} max-h-[85vh] overflow-y-auto p-6 relative rounded-lg shadow-lg
+          bg-white text-gray-900 
+          dark:bg-gray-800 dark:text-gray-100`}
         onClick={(e) => e.stopPropagation()} // prevent close inside
       >
         {/* Close Button */}
         <button
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+          className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
           onClick={onClose}
         >
           ✕
