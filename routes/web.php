@@ -3,23 +3,23 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use App\Models\User;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\CourseController;
-
+use App\Http\Controllers\SubcourseController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/courses', [CourseController::class, 'indexPage'])->name('courses.index');
-
+    // Courses
+    Route::get('/courses', [CourseController::class, 'indexPage'])->name('courses.page');
     Route::get('/courses/list', [CourseController::class, 'index']);
-    Route::get('/courses/{id}', [CourseController::class, 'show']);
-    Route::post('/courses', [CourseController::class, 'store']);
-    Route::put('/courses/{id}', [CourseController::class, 'update']);   // ✅ real PUT
-    Route::delete('/courses/{id}', [CourseController::class, 'destroy']); // ✅ delete
+    Route::resource('courses', CourseController::class)->except(['index']);
+
+    // Subcourses
+    Route::get('/subcourses', [SubcourseController::class, 'indexPage'])->name('subcourses.page');
+    Route::get('/subcourses/list', [SubcourseController::class, 'index']);
+    Route::resource('subcourses', SubcourseController::class)->except(['index']);
 });
 
 // Debug Oracle users (remove in production!)
@@ -36,11 +36,9 @@ Route::get('/lms-users', function () {
 });
 
 // test-auth route
-Route::get('/test-auth', function() {
+Route::get('/test-auth', function () {
     return auth()->user();
 });
-
-
 
 Route::get('dashboard', function (\Illuminate\Http\Request $request) {
     return Inertia::render('dashboard', [
@@ -48,5 +46,5 @@ Route::get('dashboard', function (\Illuminate\Http\Request $request) {
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-require __DIR__.'/settings.php';
-require __DIR__.'/auth.php';
+require __DIR__ . '/settings.php';
+require __DIR__ . '/auth.php';

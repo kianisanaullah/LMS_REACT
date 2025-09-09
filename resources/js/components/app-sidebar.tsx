@@ -18,6 +18,11 @@ const mainNavItems: NavItem[] = [
         href: '/courses',
         icon: BookOpen, // you can pick another icon like GraduationCap
     },
+     {
+        title: 'Subcourses',
+        href: '/subcourses',
+        icon: BookOpen, // you can pick another icon like GraduationCap
+    },
 ];
 
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Head } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,9 @@ import InputError from "@/components/input-error";
 import axios from "axios";
 import AppLayout from "@/layouts/app-layout";   
 import { type BreadcrumbItem } from "@/types";
+import Modal from "@/components/ui/modal";
+
+
 
 interface Course {
   ID: number;
@@ -14,7 +17,7 @@ interface Course {
   SHORT_NAME: string;
   DESCRIPTION?: string;
   ATTACHMENTS?: string | null;   // stored filename in DB
-  ATTACHMENT_URL?: string | null; // ✅ full URL for frontend use
+  ATTACHMENT_URL?: string | null;
 }
 
 
@@ -23,7 +26,7 @@ type FormState = {
   COURSE_NAME: string;
   SHORT_NAME: string;
   DESCRIPTION: string;
-  ATTACHMENTS: File | string | null; // ✅ file object for upload
+  ATTACHMENTS: File | string | null; 
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -35,6 +38,8 @@ export default function Courses() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
 
   const [form, setForm] = useState<FormState>({
     id: null,
@@ -69,15 +74,21 @@ export default function Courses() {
   }, []);
 
   const resetForm = () => {
-    setForm({
-      id: null,
-      COURSE_NAME: "",
-      SHORT_NAME: "",
-      DESCRIPTION: "",
-      ATTACHMENTS: null,
-    });
-    setErrors({});
-  };
+  setForm({
+    id: null,
+    COURSE_NAME: "",
+    SHORT_NAME: "",
+    DESCRIPTION: "",
+    ATTACHMENTS: null,
+  });
+  setErrors({});
+
+  // clear file input field manually
+  if (fileInputRef.current) {
+    fileInputRef.current.value = "";
+  }
+};
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +107,7 @@ export default function Courses() {
   let request;
 
 if (form.id) {
-  formData.append("_method", "PUT"); // 👈 spoof method
+  formData.append("_method", "PUT"); 
   request = axios.post(`/courses/${Number(form.id)}`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
@@ -127,7 +138,7 @@ if (form.id) {
       COURSE_NAME: course.COURSE_NAME,
       SHORT_NAME: course.SHORT_NAME,
       DESCRIPTION: course.DESCRIPTION ?? "",
-      ATTACHMENTS: null, // only set when user uploads new file
+      ATTACHMENTS: null, 
 
     });
   };
@@ -196,18 +207,20 @@ return (
         {/* Attachments */}
         <div>
           <Label htmlFor="attachments">Attachments</Label>
-          <input
-            id="attachments"
-            type="file"
-            onChange={(e) =>
-              setForm({ ...form, ATTACHMENTS: e.target.files?.[0] || null })
-            }
-            className="w-full border rounded px-3 py-2 text-sm file:mr-4 file:py-2 file:px-4 
-                       file:rounded file:border-0 file:text-sm file:font-semibold 
-                       file:bg-gray-100 file:text-gray-700 
-                       hover:file:bg-gray-200 focus:outline-none focus:ring-2 
-                       focus:ring-gray-400 focus:border-gray-400"
-          />
+         <input
+  id="attachments"
+  type="file"
+  ref={fileInputRef}   
+  onChange={(e) =>
+    setForm({ ...form, ATTACHMENTS: e.target.files?.[0] || null })
+  }
+  className="w-full border rounded px-3 py-2 text-sm file:mr-4 file:py-2 file:px-4 
+             file:rounded file:border-0 file:text-sm file:font-semibold 
+             file:bg-gray-100 file:text-gray-700 
+             hover:file:bg-gray-200 focus:outline-none focus:ring-2 
+             focus:ring-gray-400 focus:border-gray-400"
+/>
+
         </div>
 
         <Button type="submit" disabled={processing}>
@@ -313,47 +326,33 @@ return (
       </table>
     </div>
 
-    {/* Modal for Course Details */}
-    {selectedCourse && (
-      <div
-        className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-30 backdrop-blur-sm z-50 p-4"
-        onClick={() => setSelectedCourse(null)} // close when clicking outside
-      >
-        <div
-          className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[85vh] overflow-y-auto p-6 relative"
-          onClick={(e) => e.stopPropagation()} // prevent close when clicking inside
-        >
-          {/* Close Button */}
-          <button
-            className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
-            onClick={() => setSelectedCourse(null)}
-          >
-            ✕
-          </button>
-
-          <h3 className="text-xl font-bold mb-4 text-center">Course Details</h3>
-
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm font-semibold text-gray-600">Course Name</p>
-              <p className="text-gray-800">{selectedCourse.COURSE_NAME}</p>
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold text-gray-600">Short Name</p>
-              <p className="text-gray-800">{selectedCourse.SHORT_NAME}</p>
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold text-gray-600">Description</p>
-              <p className="text-gray-800 whitespace-pre-line">
-                {selectedCourse.DESCRIPTION || "No description available"}
-              </p>
-            </div>
-          </div>
-        </div>
+ <Modal
+  isOpen={!!selectedCourse}
+  onClose={() => setSelectedCourse(null)}
+  title="Course Details"
+  widthClass="max-w-4xl"
+>
+  {selectedCourse && (
+    <div className="space-y-3">
+      <div>
+        <p className="text-sm font-semibold text-gray-600">Course Name</p>
+        <p className="text-gray-800">{selectedCourse.COURSE_NAME}</p>
       </div>
-    )}
+
+      <div>
+        <p className="text-sm font-semibold text-gray-600">Short Name</p>
+        <p className="text-gray-800">{selectedCourse.SHORT_NAME}</p>
+      </div>
+
+      <div>
+        <p className="text-sm font-semibold text-gray-600">Description</p>
+        <p className="text-gray-800 whitespace-pre-line">
+          {selectedCourse.DESCRIPTION || "No description available"}
+        </p>
+      </div>
+    </div>
+  )}
+</Modal>
   </AppLayout>
 );
 
