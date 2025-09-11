@@ -185,26 +185,34 @@ export default function Subcourses() {
         encType="multipart/form-data"
       >
         {/* Dropdown for Course */}
-        <div>
-          <Label htmlFor="course_id">Select Course</Label>
-          <select
-            id="course_id"
-            value={form.COURSE_ID ?? ""}
-            onChange={(e) =>
-              setForm({ ...form, COURSE_ID: Number(e.target.value) })
-            }
-            required
-            className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400"
-          >
-            <option value="">-- Select Course --</option>
-            {courses.map((course: Course) => (
-              <option key={course.ID} value={course.ID}>
-                {course.COURSE_NAME}
-              </option>
-            ))}
-          </select>
-          {/* <InputError message={errors.COURSE_ID} /> */}
-        </div>
+       <div>
+  <Label htmlFor="course_id" className="block text-sm font-medium mb-1">
+    Select Course
+  </Label>
+  <select
+    id="course_id"
+    value={form.COURSE_ID ?? ""}
+    onChange={(e) =>
+      setForm({ ...form, COURSE_ID: Number(e.target.value) })
+    }
+    required
+    className="w-full border rounded px-3 py-2 text-sm
+               bg-white text-gray-900 
+               dark:bg-gray-800 dark:text-gray-100
+               focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400"
+  >
+    <option value="">-- Select Course --</option>
+    {courses.map((course: Course) => (
+      <option
+        key={course.ID}
+        value={course.ID}
+        className="bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100"
+      >
+        {course.COURSE_NAME}
+      </option>
+    ))}
+  </select>
+</div>
 
         {/* Subcourse Name */}
         <div>
@@ -273,83 +281,87 @@ export default function Subcourses() {
       </form>
 
     {/* Table */}
-<table className="w-full border-collapse border rounded-lg shadow-md overflow-hidden">
-  <thead>
-    <tr className="bg-gray-100 dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200">
-      <th className="border dark:border-gray-700 px-4 py-2 text-center w-16">ID</th>
-      <th className="border dark:border-gray-700 px-4 py-2 text-left">Subcourse Name</th>
-      <th className="border dark:border-gray-700 px-4 py-2 text-left">Course</th>
-      <th className="border dark:border-gray-700 px-4 py-2 text-left">Attachments</th>
-      <th className="border dark:border-gray-700 px-4 py-2 text-center w-60">Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {loading ? (
-      <tr>
-        <td colSpan={5} className="text-center p-4">
-          Loading subcourses...
-        </td>
+{/* Responsive Table Wrapper */}
+<div className="w-full overflow-x-auto">
+  <table className="w-full min-w-[700px] border-collapse border rounded-lg shadow-md overflow-hidden">
+    <thead>
+      <tr className="bg-gray-100 dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200">
+        <th className="border dark:border-gray-700 px-4 py-2 text-center w-16">ID</th>
+        <th className="border dark:border-gray-700 px-4 py-2 text-left">Subcourse Name</th>
+        <th className="border dark:border-gray-700 px-4 py-2 text-left">Course</th>
+        <th className="border dark:border-gray-700 px-4 py-2 text-left">Attachments</th>
+        <th className="border dark:border-gray-700 px-4 py-2 text-center w-60">Actions</th>
       </tr>
-    ) : subcourses.length === 0 ? (
-      <tr>
-        <td colSpan={5} className="text-center p-4">
-          No subcourses found
-        </td>
-      </tr>
-    ) : (
-      subcourses.map((sub: Subcourse) => (
-        <tr
-          key={sub.ID}
-          className="text-sm odd:bg-white even:bg-gray-50 hover:bg-gray-100 
-                     dark:odd:bg-gray-900 dark:even:bg-gray-800 dark:hover:bg-gray-700 
-                     transition"
-        >
-          <td className="border dark:border-gray-700 px-3 py-2 text-center">{sub.ID}</td>
-          <td className="border dark:border-gray-700 px-3 py-2">{sub.SUBCOURSE_NAME}</td>
-          <td className="border dark:border-gray-700 px-3 py-2">
-            {courses.find((c: Course) => c.ID === sub.COURSE_ID)?.COURSE_NAME || "—"}
-          </td>
-          <td className="border dark:border-gray-700 px-3 py-2 text-center">
-            {sub.ATTACHMENT_URL ? (
-              <a
-                href={sub.ATTACHMENT_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1 rounded-md text-white text-sm bg-green-600 hover:bg-green-500 transition"
-              >
-                Open File
-              </a>
-            ) : (
-              <span className="text-gray-400 dark:text-gray-500">No File</span>
-            )}
-          </td>
-          <td className="border dark:border-gray-700 px-3 py-2 text-center">
-            <div className="flex justify-center gap-2">
-              <button
-                onClick={() => handleEdit(sub)}
-                className="px-3 py-1 rounded-md text-white text-sm bg-blue-600 hover:bg-blue-500 transition"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDelete(sub.ID)}
-                className="px-3 py-1 rounded-md text-white text-sm bg-red-600 hover:bg-red-500 transition"
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => setSelectedSubcourse(sub)}
-                className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"
-              >
-                View
-              </button>
-            </div>
+    </thead>
+    <tbody>
+      {loading ? (
+        <tr>
+          <td colSpan={5} className="text-center p-4">
+            Loading subcourses...
           </td>
         </tr>
-      ))
-    )}
-  </tbody>
-</table>
+      ) : subcourses.length === 0 ? (
+        <tr>
+          <td colSpan={5} className="text-center p-4">
+            No subcourses found
+          </td>
+        </tr>
+      ) : (
+        subcourses.map((sub: Subcourse) => (
+          <tr
+            key={sub.ID}
+            className="text-sm odd:bg-white even:bg-gray-50 hover:bg-gray-100 
+                       dark:odd:bg-gray-900 dark:even:bg-gray-800 dark:hover:bg-gray-700 
+                       transition"
+          >
+            <td className="border dark:border-gray-700 px-3 py-2 text-center">{sub.ID}</td>
+            <td className="border dark:border-gray-700 px-3 py-2">{sub.SUBCOURSE_NAME}</td>
+            <td className="border dark:border-gray-700 px-3 py-2">
+              {courses.find((c: Course) => c.ID === sub.COURSE_ID)?.COURSE_NAME || "—"}
+            </td>
+            <td className="border dark:border-gray-700 px-3 py-2 text-center">
+              {sub.ATTACHMENT_URL ? (
+                <a
+                  href={sub.ATTACHMENT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1 rounded-md text-white text-sm bg-green-600 hover:bg-green-500 transition"
+                >
+                  Open File
+                </a>
+              ) : (
+                <span className="text-gray-400 dark:text-gray-500">No File</span>
+              )}
+            </td>
+            <td className="border dark:border-gray-700 px-3 py-2 text-center">
+              <div className="flex justify-center gap-2 flex-wrap">
+                <button
+                  onClick={() => handleEdit(sub)}
+                  className="px-3 py-1 rounded-md text-white text-sm bg-blue-600 hover:bg-blue-500 transition"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(sub.ID)}
+                  className="px-3 py-1 rounded-md text-white text-sm bg-red-600 hover:bg-red-500 transition"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => setSelectedSubcourse(sub)}
+                  className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"
+                >
+                  View
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))
+      )}
+    </tbody>
+  </table>
+</div>
+
 
     </div>
     <Modal
