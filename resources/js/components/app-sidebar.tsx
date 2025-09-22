@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, ShieldCheck } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -18,13 +18,22 @@ const mainNavItems: NavItem[] = [
         href: '/courses',
         icon: BookOpen, 
     },
-     {
+    {
         title: 'Subcourses',
         href: '/subcourses',
         icon: BookOpen, 
     },
+    {
+        title: 'Roles',
+        href: '/roles',
+        icon: ShieldCheck,
+    },
+    {
+        title: 'Permissions',     // 👈 new menu item
+        href: '/permissions',     // must match your routes
+        icon: ShieldCheck,        // you can swap for `Lock` or `Key` if you like
+    },
 ];
-
 
 const footerNavItems: NavItem[] = [
     {

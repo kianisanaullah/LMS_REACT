@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\SubcourseController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\PermissionController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -20,6 +22,23 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/subcourses', [SubcourseController::class, 'indexPage'])->name('subcourses.page');
     Route::get('/subcourses/list', [SubcourseController::class, 'index']);
     Route::resource('subcourses', SubcourseController::class)->except(['index']);
+
+    //  Roles
+    
+Route::get('/roles', [RoleController::class, 'indexPage'])->name('roles.page');
+Route::get('/roles/list', [RoleController::class, 'index']);
+Route::post('/roles/{role}/assign-permissions', [RoleController::class, 'assignPermissions'])
+    ->name('roles.assign-permissions');
+Route::resource('roles', RoleController::class)->except(['index']);
+
+
+Route::get('/roles/pivot-data', [RoleController::class, 'pivotData'])->name('roles.pivot');
+
+
+    // Permissions
+    Route::get('/permissions', [PermissionController::class, 'indexPage'])->name('permissions.page');
+    Route::get('/permissions/list', [PermissionController::class, 'index']);
+    Route::resource('permissions', PermissionController::class)->except(['index']);
 });
 
 // Debug Oracle users (remove in production!)

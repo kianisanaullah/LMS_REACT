@@ -14,7 +14,6 @@ class User extends Authenticatable
     protected $table = 'LMS.USERS';
     protected $primaryKey = 'ID';
     public $timestamps = false;
-//    protected $guarded=[];
 
     protected $fillable = [
         'name', 'username', 'email', 'password',
@@ -31,21 +30,40 @@ class User extends Authenticatable
         'password', 'remember_token', 'forgetpass_token', 'otp',
     ];
 
-
     public function getAuthPassword()
     {
         return $this->password;
     }
-
 
     public function getAuthIdentifierName()
     {
         return 'email';
     }
 
-    public function roles()
+    /** ======================
+     *   RELATIONS
+     *  ====================== */
+
+   public function roles()
+{
+    return $this->hasMany(Role::class, 'USER_ID', 'ID');
+}
+
+
+    /** ======================
+     *   HELPER METHODS
+     *  ====================== */
+
+    public function hasRole($roleName)
     {
-        return $this->belongsToMany(Role::class, 'LMS.ROLE_USER', 'USER_ID', 'ROLE_ID');
+        return $this->roles()->where('ROLE_NAME', $roleName)->exists();
     }
-    
+
+    public function hasPermission($permissionName)
+    {
+        return $this->roles()
+            ->whereHas('permissions', function ($q) use ($permissionName) {
+                $q->where('PERMISSION_NAME', $permissionName);
+            })->exists();
+    }
 }
