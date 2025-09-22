@@ -47,39 +47,56 @@ class CourseController extends Controller
         return $course;
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'COURSE_NAME' => 'required|string|max:255',
-            'DESCRIPTION' => 'nullable|string',
-            'SHORT_NAME'  => 'nullable|string|max:50',
-            'ATTACHMENTS' => 'nullable|file|max:5120', // max 5MB
-        ]);
+   public function store(Request $request)
+{
+    $request->validate([
+        'COURSE_NAME' => 'required|string|max:255',
+        'DESCRIPTION' => 'nullable|string',
+        'SHORT_NAME'  => 'nullable|string|max:50',
+        'ATTACHMENTS' => 'nullable|file|max:5120', // max 5MB
+    ]);
 
-        $userId = auth()->user()->id;
+    $userId = auth()->user()->id;
 
-        $course = new Course();
-        $course->COURSE_NAME = $request->COURSE_NAME;
-        $course->DESCRIPTION = $request->DESCRIPTION;
-        $course->SHORT_NAME  = $request->SHORT_NAME;
-        $course->USER_ID     = $userId;
-        $course->CREATED_BY  = $userId;
-        $course->CREATED_AT  = now();
-
-        //  store file on disk and save path in DB
-        if ($request->hasFile('ATTACHMENTS')) {
-            $path = $request->file('ATTACHMENTS')->store('courses', 'public');
-            $course->ATTACHMENTS = $path; 
-        }
-
-        $course->save();
-
-        $course->attachment_url = $course->ATTACHMENTS
-            ? asset('storage/' . $course->ATTACHMENTS)
-            : null;
-
-        return response()->json($course, 201);
+    // Check duplicate (including soft-deleted)
+    $existsAll = Course::where('COURSE_NAME', $request->COURSE_NAME)->exists();
+    if ($existsAll) {
+        return response()->json([
+            'error' => 'Course name already exists (even in deleted records)'
+        ], 422);
     }
+
+    // Active-only check
+    $exists = Course::where('COURSE_NAME', $request->COURSE_NAME)
+        ->whereNull('DELETED_AT')
+        ->exists();
+    if ($exists) {
+        return response()->json(['error' => 'Course name already exists'], 422);
+    }
+
+    $course = new Course();
+    $course->COURSE_NAME = $request->COURSE_NAME;
+    $course->DESCRIPTION = $request->DESCRIPTION;
+    $course->SHORT_NAME  = $request->SHORT_NAME;
+    $course->USER_ID     = $userId;
+    $course->CREATED_BY  = $userId;
+    $course->CREATED_AT  = now();
+
+    // ✅ Handle file upload
+    if ($request->hasFile('ATTACHMENTS')) {
+        $path = $request->file('ATTACHMENTS')->store('courses', 'public');
+        $course->ATTACHMENTS = $path;
+    }
+
+    $course->save();
+
+    $course->attachment_url = $course->ATTACHMENTS
+        ? asset('storage/' . $course->ATTACHMENTS)
+        : null;
+
+    return response()->json($course, 201);
+}
+
 
 public function update(Request $request, $id)
 {

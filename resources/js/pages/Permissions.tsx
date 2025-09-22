@@ -59,37 +59,51 @@ export default function Permissions() {
     setErrors({});
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setProcessing(true);
-    setErrors({});
+ const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  setProcessing(true);
+  setErrors({});
 
-    let request;
-    if (form.id) {
-      // PUT for update
-      request = axios.put(`/permissions/${form.id}`, {
-        PERMISSION_NAME: form.PERMISSION_NAME,
-      });
-    } else {
-      // POST for create
-      request = axios.post("/permissions", {
-        PERMISSION_NAME: form.PERMISSION_NAME,
-      });
-    }
+  let request;
+  if (form.id) {
+    // PUT for update
+    request = axios.put(`/permissions/${form.id}`, {
+      PERMISSION_NAME: form.PERMISSION_NAME,
+    });
+  } else {
+    // POST for create
+    request = axios.post("/permissions", {
+      PERMISSION_NAME: form.PERMISSION_NAME,
+    });
+  }
 
-    request
-      .then((res) => {
-        const updated = mapPermission(res.data);
-        setPermissions((prev) =>
-          form.id
-            ? prev.map((p) => (p.PERMISSION_ID === form.id ? updated : p))
-            : [updated, ...prev]
-        );
-        resetForm();
-      })
-      .catch((err) => setErrors(err.response?.data?.errors || {}))
-      .finally(() => setProcessing(false));
-  };
+  request
+    .then((res) => {
+      const updated = mapPermission(res.data);
+      setPermissions((prev) =>
+        form.id
+          ? prev.map((p) => (p.PERMISSION_ID === form.id ? updated : p))
+          : [updated, ...prev]
+      );
+      resetForm();
+    })
+    .catch((err) => {
+      // ✅ Backend validation errors (Laravel)
+      if (err.response?.status === 422) {
+        // Show backend "error" message if present
+        const msg = err.response.data?.error;
+        if (msg) {
+          alert(msg); // 🔔 Replace with toast/snackbar if you prefer
+          return;
+        }
+        // Fallback to field errors (validation rules)
+        setErrors(err.response.data?.errors || {});
+      } else {
+        console.error(err);
+      }
+    })
+    .finally(() => setProcessing(false));
+};
 
   const handleEdit = (permission: Permission) => {
     setForm({

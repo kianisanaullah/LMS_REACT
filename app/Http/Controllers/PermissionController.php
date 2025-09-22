@@ -35,36 +35,50 @@ class PermissionController extends Controller
     }
 
     // Create permission
+    
+
     public function store(Request $request)
-    {
-        $request->validate([
-            'PERMISSION_NAME' => 'required|string|max:255',
-        ]);
+{
+    $request->validate([
+        'PERMISSION_NAME' => 'required|string|max:255',
+    ]);
 
-        $userId = auth()->user()->id;
+    $userId = auth()->user()->id;
 
-        // Check duplicate
-        $exists = DB::table('LMS.PERMISSIONS')
-            ->where('PERMISSION_NAME', $request->PERMISSION_NAME)
-            ->whereNull('DELETED_AT')
-            ->exists();
+    // ✅ Check duplicate (including soft-deleted)
+    $existsAll = DB::table('LMS.PERMISSIONS')
+        ->where('PERMISSION_NAME', $request->PERMISSION_NAME)
+        ->exists();
 
-        if ($exists) {
-            return response()->json(['error' => 'Permission name already exists'], 422);
-        }
-
-        $data = [
-            'PERMISSION_NAME' => $request->PERMISSION_NAME,
-            'USER_ID'         => $userId,
-            'CREATED_BY'      => $userId,
-            'CREATED_AT'      => now()->format('Y-m-d H:i:s'),
-        ];
-
-        $id = DB::table('LMS.PERMISSIONS')->insertGetId($data, 'PERMISSION_ID');
-        $permission = DB::table('LMS.PERMISSIONS')->where('PERMISSION_ID', $id)->first();
-
-        return response()->json($permission, 201);
+    if ($existsAll) {
+        return response()->json([
+            'error' => 'Permission name already exists (even in deleted records)'
+        ], 422);
     }
+
+    // ✅ Existing active-only check (kept as is)
+    $exists = DB::table('LMS.PERMISSIONS')
+        ->where('PERMISSION_NAME', $request->PERMISSION_NAME)
+        ->whereNull('DELETED_AT')
+        ->exists();
+
+    if ($exists) {
+        return response()->json(['error' => 'Permission name already exists'], 422);
+    }
+
+    $data = [
+        'PERMISSION_NAME' => $request->PERMISSION_NAME,
+        'USER_ID'         => $userId,
+        'CREATED_BY'      => $userId,
+        'CREATED_AT'      => now()->format('Y-m-d H:i:s'),
+    ];
+
+    $id = DB::table('LMS.PERMISSIONS')->insertGetId($data, 'PERMISSION_ID');
+    $permission = DB::table('LMS.PERMISSIONS')->where('PERMISSION_ID', $id)->first();
+
+    return response()->json($permission, 201);
+}
+
 
     // Update permission
     public function update(Request $request, $id)

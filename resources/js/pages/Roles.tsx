@@ -106,11 +106,23 @@ const handleSubmit = (e: React.FormEvent) => {
       resetForm();
     })
     .catch((err) => {
-      const apiErrors = err.response?.data?.errors || {};
-      const mappedErrors: Partial<FormState> = {
-        ROLE_NAME: apiErrors.role_name,
-      };
-      setErrors(mappedErrors);
+      if (err.response?.status === 422) {
+        // ✅ Backend custom error (like duplicate role)
+        const msg = err.response.data?.error;
+        if (msg) {
+          alert(msg); // 🔔 Replace with toast/snackbar for better UX
+          return;
+        }
+
+        // ✅ Laravel validation errors
+        const apiErrors = err.response.data?.errors || {};
+        const mappedErrors: Partial<FormState> = {
+          ROLE_NAME: apiErrors.ROLE_NAME || apiErrors.role_name,
+        };
+        setErrors(mappedErrors);
+      } else {
+        console.error(err);
+      }
     })
     .finally(() => setProcessing(false));
 };

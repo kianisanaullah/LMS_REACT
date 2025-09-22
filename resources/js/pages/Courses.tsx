@@ -89,47 +89,57 @@ export default function Courses() {
 };
 
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setProcessing(true);
-    setErrors({});
+const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  setProcessing(true);
+  setErrors({});
 
-    const formData = new FormData();
-    formData.append("COURSE_NAME", form.COURSE_NAME);
-    formData.append("SHORT_NAME", form.SHORT_NAME);
-    formData.append("DESCRIPTION", form.DESCRIPTION);
-
-    if (form.ATTACHMENTS) {
-      formData.append("ATTACHMENTS", form.ATTACHMENTS);
-    }
+  const formData = new FormData();
+  formData.append("COURSE_NAME", form.COURSE_NAME);
+  formData.append("SHORT_NAME", form.SHORT_NAME);
+  formData.append("DESCRIPTION", form.DESCRIPTION);
+  if (form.ATTACHMENTS) {
+    formData.append("ATTACHMENTS", form.ATTACHMENTS);
+  }
 
   let request;
+  if (form.id) {
+    formData.append("_method", "PUT");
+    request = axios.post(`/courses/${Number(form.id)}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  } else {
+    request = axios.post("/courses", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  }
 
-if (form.id) {
-  formData.append("_method", "PUT"); 
-  request = axios.post(`/courses/${Number(form.id)}`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-} else {
-  request = axios.post("/courses", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-}
+  request
+    .then((res) => {
+      const updated = mapCourse(res.data);
+      setCourses((prev) =>
+        form.id ? prev.map((c) => (c.ID === form.id ? updated : c)) : [updated, ...prev]
+      );
+      resetForm();
+    })
+    .catch((err) => {
+      if (err.response?.status === 422) {
+        //  Custom backend duplicate error
+        const msg = err.response.data?.error;
+        if (msg) {
+          alert(msg); 
+          return;
+        }
 
+        // ✅ Laravel validation errors
+        setErrors(err.response.data?.errors || {});
+      } else {
+        console.error(err);
+      }
+    })
+    .finally(() => setProcessing(false));
+};
 
-
-
-    request
-      .then((res) => {
-        const updated = mapCourse(res.data);
-        setCourses((prev) =>
-          form.id ? prev.map((c) => (c.ID === form.id ? updated : c)) : [updated, ...prev]
-        );
-        resetForm();
-      })
-      .catch((err) => setErrors(err.response?.data?.errors || {}))
-      .finally(() => setProcessing(false));
-  };
 
   const handleEdit = (course: Course) => {
     setForm({

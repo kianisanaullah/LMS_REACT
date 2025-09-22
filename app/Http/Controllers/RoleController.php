@@ -59,74 +59,95 @@ class RoleController extends Controller
 
 
     // Store new role
-    public function store(Request $request)
-    {
-        $request->validate([
-            'ROLE_NAME' => 'required|string|max:255',
-        ]);
+   public function store(Request $request)
+{
+    $request->validate([
+        'ROLE_NAME' => 'required|string|max:255',
+    ]);
 
-        $userId = auth()->user()->id;
+    $userId = auth()->user()->id;
 
-        // Check if the role already exists
-        $exists = Role::where('ROLE_NAME', $request->ROLE_NAME)
-            ->whereNull('DELETED_AT')
-            ->exists();
-
-        if ($exists) {
-            return response()->json([
-                'error' => 'Role name already exists'
-            ], 422);
-        }
-
-        $role = Role::create([
-            'ROLE_NAME'  => $request->ROLE_NAME,
-            'USER_ID'    => $userId,
-            'CREATED_BY' => $userId,
-            'CREATED_AT' => now()->format('Y-m-d H:i:s'),
-        ]);
-
-        return response()->json($role->load('permissions'), 201);
+    //  Check duplicate (including soft-deleted)
+    $existsAll = Role::where('ROLE_NAME', $request->ROLE_NAME)->exists();
+    if ($existsAll) {
+        return response()->json([
+            'error' => 'Role name already exists (even in deleted records)'
+        ], 422);
     }
+
+    //  Active-only check
+    $exists = Role::where('ROLE_NAME', $request->ROLE_NAME)
+        ->whereNull('DELETED_AT')
+        ->exists();
+    if ($exists) {
+        return response()->json(['error' => 'Role name already exists'], 422);
+    }
+
+    $role = Role::create([
+        'ROLE_NAME'  => $request->ROLE_NAME,
+        'USER_ID'    => $userId,
+        'CREATED_BY' => $userId,
+        'CREATED_AT' => now()->format('Y-m-d H:i:s'),
+    ]);
+
+    return response()->json($role->load('permissions'), 201);
+}
+
 
     // Update role
-    public function update(Request $request, $id)
-    {
-        $userId = auth()->user()->id;
+   public function update(Request $request, $id)
+{
+    $userId = auth()->user()->id;
 
-        $role = Role::where('ROLE_ID', $id)
-            ->where('USER_ID', $userId)
-            ->firstOrFail();
+    $data = [
+        'UPDATED_BY' => $userId,
+        'UPDATED_AT' => now()->format('Y-m-d H:i:s'),
+    ];
 
-        $data = [
-            'UPDATED_BY' => $userId,
-            'UPDATED_AT' => now()->format('Y-m-d H:i:s'),
-        ];
-
-        if ($request->has('ROLE_NAME')) {
-            $data['ROLE_NAME'] = $request->ROLE_NAME;
-        }
-
-        $role->update($data);
-
-        return response()->json($role->load('permissions'), 200);
+    if ($request->has('ROLE_NAME')) {
+        $data['ROLE_NAME'] = $request->ROLE_NAME;
     }
+
+    $updated = DB::table('LMS.ROLES')
+        ->where('ROLE_ID', $id)
+        ->where('USER_ID', $userId)
+        ->update($data);
+
+    if (!$updated) {
+        return response()->json(['error' => 'Role not found'], 404);
+    }
+
+    $role = DB::table('LMS.ROLES')
+        ->where('ROLE_ID', $id)
+        ->where('USER_ID', $userId)
+        ->first();
+
+    return response()->json($role, 200);
+}
+
 
     // Soft delete
-    public function destroy($id)
-    {
-        $userId = auth()->user()->id;
+ public function destroy($id)
+{
+    $userId = auth()->user()->id;
 
-        $role = Role::where('ROLE_ID', $id)
-            ->where('USER_ID', $userId)
-            ->firstOrFail();
+    $data = [
+        'DELETED_BY' => $userId,
+        'DELETED_AT' => now()->format('Y-m-d H:i:s'),
+    ];
 
-        $role->update([
-            'DELETED_BY' => $userId,
-            'DELETED_AT' => now()->format('Y-m-d H:i:s'),
-        ]);
+    $deleted = DB::table('LMS.ROLES')
+        ->where('ROLE_ID', $id)
+        ->where('USER_ID', $userId)
+        ->update($data);
 
-        return response()->json(['message' => 'Role deleted successfully']);
+    if (!$deleted) {
+        return response()->json(['error' => 'Role not found'], 404);
     }
+
+    return response()->json(['message' => 'Role deleted successfully']);
+}
+
 
 // Assign permissions to role
 public function assignPermissions(Request $request, $roleId)
