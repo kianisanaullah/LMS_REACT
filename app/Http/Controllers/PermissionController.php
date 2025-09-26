@@ -45,7 +45,7 @@ class PermissionController extends Controller
 
     $userId = auth()->user()->id;
 
-    // ✅ Check duplicate (including soft-deleted)
+    // Check duplicate (including soft-deleted)
     $existsAll = DB::table('LMS.PERMISSIONS')
         ->where('PERMISSION_NAME', $request->PERMISSION_NAME)
         ->exists();
@@ -56,7 +56,7 @@ class PermissionController extends Controller
         ], 422);
     }
 
-    // ✅ Existing active-only check (kept as is)
+    // Existing active-only check (kept as is)
     $exists = DB::table('LMS.PERMISSIONS')
         ->where('PERMISSION_NAME', $request->PERMISSION_NAME)
         ->whereNull('DELETED_AT')

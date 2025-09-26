@@ -15,7 +15,7 @@ interface Course {
   COURSE_NAME: string;
   SHORT_NAME: string;
   DESCRIPTION?: string;
-  ATTACHMENTS?: string | null;   // stored filename in DB
+  ATTACHMENTS?: string | null;   
   ATTACHMENT_URL?: string | null;
 }
 
@@ -82,7 +82,7 @@ export default function Courses() {
   });
   setErrors({});
 
-  // clear file input field manually
+  // clear file input field
   if (fileInputRef.current) {
     fileInputRef.current.value = "";
   }
@@ -131,7 +131,7 @@ const handleSubmit = (e: React.FormEvent) => {
           return;
         }
 
-        // ✅ Laravel validation errors
+        // Laravel validation errors
         setErrors(err.response.data?.errors || {});
       } else {
         console.error(err);

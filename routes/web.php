@@ -7,6 +7,8 @@ use App\Http\Controllers\CourseController;
 use App\Http\Controllers\SubcourseController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserRoleController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -39,6 +41,25 @@ Route::get('/roles/pivot-data', [RoleController::class, 'pivotData'])->name('rol
     Route::get('/permissions', [PermissionController::class, 'indexPage'])->name('permissions.page');
     Route::get('/permissions/list', [PermissionController::class, 'index']);
     Route::resource('permissions', PermissionController::class)->except(['index']);
+
+
+
+     // ==============================
+    // Users & Roles
+    // ==============================
+    // List users page
+    Route::get('/users', [UserController::class, 'indexPage'])->name('users.page');
+    // Get users JSON for table
+    Route::get('/users/list', [UserController::class, 'index']);
+
+    // Fetch a specific user’s roles
+    Route::get('/users/{id}/roles', [UserRoleController::class, 'getUserRoles'])->name('users.roles');
+
+    // Assign roles to a user (bulk update)
+    Route::post('/users/{id}/roles', [UserRoleController::class, 'assignRoles'])->name('users.roles.assign');
+
+    // Remove a single role from a user
+    Route::delete('/users/{id}/roles/{roleId}', [UserRoleController::class, 'removeRole'])->name('users.roles.remove');
 });
 
 // Debug Oracle users (remove in production!)

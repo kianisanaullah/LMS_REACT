@@ -24,7 +24,7 @@ public function assignRole(Request $request, $userId)
 {
     $request->validate([
         'role_ids' => 'required|array',
-        'role_ids.*' => 'in:7,8,9', // ✅ only allow these 3 roles
+        'role_ids.*' => 'in:7,8,9', //  only allow these 3 roles
     ]);
 
     $user = User::findOrFail($userId);

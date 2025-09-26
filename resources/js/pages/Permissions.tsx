@@ -88,12 +88,12 @@ export default function Permissions() {
       resetForm();
     })
     .catch((err) => {
-      // ✅ Backend validation errors (Laravel)
+      //  Backend validation errors (Laravel)
       if (err.response?.status === 422) {
         // Show backend "error" message if present
         const msg = err.response.data?.error;
         if (msg) {
-          alert(msg); // 🔔 Replace with toast/snackbar if you prefer
+          alert(msg);
           return;
         }
         // Fallback to field errors (validation rules)

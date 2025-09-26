@@ -14,6 +14,12 @@ interface Role {
   ROLE_NAME: string;
 }
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
 type FormState = {
   id: number | null;
   ROLE_NAME: string;
@@ -33,15 +39,19 @@ interface RawPermission {
   permission_name: string;
 }
 
-
 export default function Roles() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [selectedPermissions, setSelectedPermissions] = useState<number[]>([]);
   const [assigning, setAssigning] = useState(false);
+
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userRoles, setUserRoles] = useState<number[]>([]);
+  const [assigningRole, setAssigningRole] = useState(false);
 
   const [form, setForm] = useState<FormState>({
     id: null,
@@ -51,7 +61,6 @@ export default function Roles() {
   const [errors, setErrors] = useState<Partial<FormState>>({});
   const [processing, setProcessing] = useState(false);
 
-  // ✅ Normalize role keys
   function mapRole(r: any): Role {
     return {
       ROLE_ID: r.ROLE_ID ?? r.role_id,
@@ -60,17 +69,22 @@ export default function Roles() {
   }
 
   useEffect(() => {
-    Promise.all([axios.get("/roles/list"), axios.get("/permissions/list")])
-      .then(([rolesRes, permsRes]) => {
+    Promise.all([
+      axios.get("/roles/list"),
+      axios.get("/permissions/list"),
+      axios.get("/users/list"),
+    ])
+      .then(([rolesRes, permsRes, usersRes]) => {
         setRoles(rolesRes.data.map(mapRole));
 
-        // ✅ Normalize permissions from backend
         setPermissions(
           permsRes.data.map((p: any) => ({
             PERMISSION_ID: p.PERMISSION_ID ?? p.permission_id,
             PERMISSION_NAME: p.PERMISSION_NAME ?? p.permission_name,
           }))
         );
+
+        setUsers(usersRes.data);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -83,50 +97,47 @@ export default function Roles() {
     setErrors({});
   };
 
-const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  setProcessing(true);
-  setErrors({});
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setProcessing(true);
+    setErrors({});
 
-  let request;
-  if (form.id) {
-    request = axios.put(`/roles/${form.id}`, { ROLE_NAME: form.ROLE_NAME });
-  } else {
-    request = axios.post("/roles", { ROLE_NAME: form.ROLE_NAME });
-  }
+    let request;
+    if (form.id) {
+      request = axios.put(`/roles/${form.id}`, { ROLE_NAME: form.ROLE_NAME });
+    } else {
+      request = axios.post("/roles", { ROLE_NAME: form.ROLE_NAME });
+    }
 
-  request
-    .then((res) => {
-      const updated = mapRole(res.data);
-      setRoles((prev) =>
-        form.id
-          ? prev.map((r) => (r.ROLE_ID === form.id ? updated : r))
-          : [updated, ...prev]
-      );
-      resetForm();
-    })
-    .catch((err) => {
-      if (err.response?.status === 422) {
-        // ✅ Backend custom error (like duplicate role)
-        const msg = err.response.data?.error;
-        if (msg) {
-          alert(msg); // 🔔 Replace with toast/snackbar for better UX
-          return;
+    request
+      .then((res) => {
+        const updated = mapRole(res.data);
+        setRoles((prev) =>
+          form.id
+            ? prev.map((r) => (r.ROLE_ID === form.id ? updated : r))
+            : [updated, ...prev]
+        );
+        resetForm();
+      })
+      .catch((err) => {
+        if (err.response?.status === 422) {
+          const msg = err.response.data?.error;
+          if (msg) {
+            alert(msg);
+            return;
+          }
+
+          const apiErrors = err.response.data?.errors || {};
+          const mappedErrors: Partial<FormState> = {
+            ROLE_NAME: apiErrors.ROLE_NAME || apiErrors.role_name,
+          };
+          setErrors(mappedErrors);
+        } else {
+          console.error(err);
         }
-
-        // ✅ Laravel validation errors
-        const apiErrors = err.response.data?.errors || {};
-        const mappedErrors: Partial<FormState> = {
-          ROLE_NAME: apiErrors.ROLE_NAME || apiErrors.role_name,
-        };
-        setErrors(mappedErrors);
-      } else {
-        console.error(err);
-      }
-    })
-    .finally(() => setProcessing(false));
-};
-
+      })
+      .finally(() => setProcessing(false));
+  };
 
   const handleEdit = (role: Role) => {
     setForm({
@@ -142,207 +153,331 @@ const handleSubmit = (e: React.FormEvent) => {
     });
   };
 
-const handleSelectRole = (role: Role) => {
-  setSelectedRole(role);
+  const handleSelectRole = (role: Role) => {
+    setSelectedRole(role);
 
-  axios.get(`/roles/${role.ROLE_ID}`).then((res) => {
-    const roleData = res.data;
+    axios.get(`/roles/${role.ROLE_ID}`).then((res) => {
+      const roleData = res.data;
 
-    // 🔑 Normalize snake_case → UpperCase
-    const normalizedPermissions: Permission[] =
-      roleData.permissions?.map((p: RawPermission) => ({
-        PERMISSION_ID: Number(p.permission_id),
-        PERMISSION_NAME: p.permission_name,
-      })) || [];
+      const normalizedPermissions: Permission[] =
+        roleData.permissions?.map((p: RawPermission) => ({
+          PERMISSION_ID: Number(p.permission_id),
+          PERMISSION_NAME: p.permission_name,
+        })) || [];
 
-    const assignedIds = normalizedPermissions.map((p) => p.PERMISSION_ID);
+      const assignedIds = normalizedPermissions.map((p) => p.PERMISSION_ID);
 
-    setSelectedPermissions(assignedIds);
+      setSelectedPermissions(assignedIds);
+    });
+  };
+
+  const togglePermission = (id: number) => {
+    setSelectedPermissions((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  };
+
+  const savePermissions = () => {
+    if (!selectedRole) return;
+    setAssigning(true);
+
+    axios
+      .post(`/roles/${selectedRole.ROLE_ID}/assign-permissions`, {
+        permissions: selectedPermissions,
+      })
+      .then((res) => {
+        const updatedRole = mapRole(res.data.role);
+        setRoles((prev) =>
+          prev.map((r) => (r.ROLE_ID === updatedRole.ROLE_ID ? updatedRole : r))
+        );
+
+        setSelectedRole(null);
+        setSelectedPermissions([]);
+      })
+      .finally(() => setAssigning(false));
+  };
+
+  // ----------------- USER ROLE MANAGEMENT -----------------
+
+const handleSelectUser = (user: User) => {
+  setSelectedUser(user);
+  axios.get(`/users/${user.id}/roles`).then((res) => {
+    const assignedIds = res.data.map((r: any) => Number(r.role_id));
+    setUserRoles(assignedIds);
   });
 };
 
-
-
-
-const togglePermission = (id: number) => {
-  setSelectedPermissions((prev) =>
-    prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+const toggleUserRole = (roleId: number) => {
+  setUserRoles((prev) =>
+    prev.includes(roleId)
+      ? prev.filter((r) => r !== roleId)
+      : [...prev, roleId]
   );
 };
 
-const savePermissions = () => {
-  if (!selectedRole) return;
-  setAssigning(true);
+const saveUserRoles = () => {
+  if (!selectedUser) return;
+  setAssigningRole(true);
 
   axios
-    .post(`/roles/${selectedRole.ROLE_ID}/assign-permissions`, {
-      permissions: selectedPermissions,
+    .post(`/users/${selectedUser.id}/roles`, {
+      roles: userRoles, // send all selected role IDs at once
     })
-    .then((res) => {
-      // ✅ Update state with normalized role
-      const updatedRole = mapRole(res.data.role);
-      setRoles((prev) =>
-        prev.map((r) => (r.ROLE_ID === updatedRole.ROLE_ID ? updatedRole : r))
-      );
-
-      // ✅ Close modal and clear selections
-      setSelectedRole(null);
-      setSelectedPermissions([]);
+    .then(() => {
+      setSelectedUser(null);
+      setUserRoles([]);
     })
-    .finally(() => setAssigning(false));
+    .finally(() => setAssigningRole(false));
 };
 
+  // ----------------- RENDER -----------------
 
+  return (
+    <AppLayout breadcrumbs={breadcrumbs}>
+      <Head title="Roles Management" />
 
-return (
-  <AppLayout breadcrumbs={breadcrumbs}>
-    <Head title="Roles Management" />
+      <div className="p-6">
+        <h2 className="text-xl font-bold mb-4">Roles Management</h2>
 
-    <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">Roles Management</h2>
+        {/* Form */}
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-3 mb-6 border p-4 rounded"
+        >
+          <div>
+            <Label htmlFor="role_name">Role Name</Label>
+            <Input
+              id="role_name"
+              type="text"
+              value={form.ROLE_NAME}
+              onChange={(e) => setForm({ ...form, ROLE_NAME: e.target.value })}
+              required
+              className="focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400"
+            />
 
-      {/* Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-3 mb-6 border p-4 rounded"
-      >
-        <div>
-          <Label htmlFor="role_name">Role Name</Label>
-          <Input
-            id="role_name"
-            type="text"
-            value={form.ROLE_NAME}
-            onChange={(e) =>
-              setForm({ ...form, ROLE_NAME: e.target.value })
-            }
-            required
-            className="focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400"
-          />
-          {/* ✅ Handle both UPPERCASE + lowercase validation errors */}
-          <InputError message={errors.ROLE_NAME} />
-        </div>
+            <InputError message={errors.ROLE_NAME} />
+          </div>
 
-        <Button type="submit" disabled={processing}>
-          {form.id ? "Update Role" : "Add Role"}
-        </Button>
-        {form.id && (
-          <Button
-            type="button"
-            variant="secondary"
-            className="ml-2"
-            onClick={resetForm}
-          >
-            Cancel
+          <Button type="submit" disabled={processing}>
+            {form.id ? "Update Role" : "Add Role"}
           </Button>
-        )}
-      </form>
+          {form.id && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="ml-2"
+              onClick={resetForm}
+            >
+              Cancel
+            </Button>
+          )}
+        </form>
 
-      {/* Table */}
-      <div className="w-full overflow-x-auto">
-        <table className="w-full min-w-[400px] border-collapse border rounded-lg shadow-md overflow-hidden">
-          <thead>
-            <tr className="bg-gray-100 dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200">
-              <th className="border px-4 py-2 text-center w-16">ID</th>
-              <th className="border px-4 py-2 text-left">Role Name</th>
-              <th className="border px-4 py-2 text-center w-80">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={3} className="text-center p-4">
-                  Loading roles...
-                </td>
+        {/* Roles Table */}
+        <div className="w-full overflow-x-auto mb-10">
+          <table className="w-full min-w-[400px] border-collapse border rounded-lg shadow-md overflow-hidden">
+            <thead>
+              <tr className="bg-gray-100 dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                <th className="border px-4 py-2 text-center w-16">ID</th>
+                <th className="border px-4 py-2 text-left">Role Name</th>
+                <th className="border px-4 py-2 text-center w-80">Actions</th>
               </tr>
-            ) : roles.length === 0 ? (
-              <tr>
-                <td colSpan={3} className="text-center p-4">
-                  No roles found
-                </td>
-              </tr>
-            ) : (
-              roles.map((role) => (
-                <tr
-                  key={role.ROLE_ID}
-                  className="text-sm odd:bg-white even:bg-gray-50 hover:bg-gray-100 dark:odd:bg-gray-900 dark:even:bg-gray-800 dark:hover:bg-gray-700 transition"
-                >
-                  <td className="border px-3 py-2 text-center">
-                    {role.ROLE_ID}
-                  </td>
-                  <td
-                    className="border px-3 py-2 text-left truncate"
-                    title={role.ROLE_NAME}
-                  >
-                    {role.ROLE_NAME}
-                  </td>
-                  <td className="border px-3 py-2 text-center">
-                    <div className="flex justify-center gap-2 flex-wrap">
-                      <button
-                        onClick={() => handleEdit(role)}
-                        className="px-3 py-1 rounded-md text-white text-sm bg-blue-600 hover:bg-blue-500 transition"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(role.ROLE_ID)}
-                        className="px-3 py-1 rounded-md text-white text-sm bg-red-600 hover:bg-red-500 transition"
-                      >
-                        Delete
-                      </button>
-                      <button
-                        onClick={() => handleSelectRole(role)}
-                        className="px-3 py-1 rounded-md text-white text-sm bg-green-600 hover:bg-green-500 transition"
-                      >
-                        Manage Permissions
-                      </button>
-                    </div>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={3} className="text-center p-4">
+                    Loading roles...
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    {/* Permissions Modal */}
-    {selectedRole && (
-      <Modal isOpen={!!selectedRole} onClose={() => setSelectedRole(null)}>
-        <div className="p-6 max-w-2xl">
-          <h3 className="text-lg font-semibold mb-4">
-            Manage Permissions for{" "}
-            <span className="text-blue-600">{selectedRole.ROLE_NAME}</span>
-          </h3>
-
-          <div className="grid grid-cols-2 gap-3">
-            {permissions.map((perm) => (
-              <label
-                key={perm.PERMISSION_ID}
-                className="flex items-center space-x-2"
-              >
-               <input
-  type="checkbox"
-  checked={selectedPermissions.includes(Number(perm.PERMISSION_ID))}
-  onChange={() => togglePermission(Number(perm.PERMISSION_ID))}
-/>
-<span>{perm.PERMISSION_NAME}</span>
-              </label>
-            ))}
-          </div>
-
-          <div className="mt-6 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setSelectedRole(null)}>
-              Close
-            </Button>
-            <Button onClick={savePermissions} disabled={assigning}>
-              Save
-            </Button>
-          </div>
+              ) : roles.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="text-center p-4">
+                    No roles found
+                  </td>
+                </tr>
+              ) : (
+                roles.map((role) => (
+                  <tr
+                    key={role.ROLE_ID}
+                    className="text-sm odd:bg-white even:bg-gray-50 hover:bg-gray-100 dark:odd:bg-gray-900 dark:even:bg-gray-800 dark:hover:bg-gray-700 transition"
+                  >
+                    <td className="border px-3 py-2 text-center">
+                      {role.ROLE_ID}
+                    </td>
+                    <td
+                      className="border px-3 py-2 text-left truncate"
+                      title={role.ROLE_NAME}
+                    >
+                      {role.ROLE_NAME}
+                    </td>
+                    <td className="border px-3 py-2 text-center">
+                      <div className="flex justify-center gap-2 flex-wrap">
+                        <button
+                          onClick={() => handleEdit(role)}
+                          className="px-3 py-1 rounded-md text-white text-sm bg-blue-600 hover:bg-blue-500 transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(role.ROLE_ID)}
+                          className="px-3 py-1 rounded-md text-white text-sm bg-red-600 hover:bg-red-500 transition"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={() => handleSelectRole(role)}
+                          className="px-3 py-1 rounded-md text-white text-sm bg-green-600 hover:bg-green-500 transition"
+                        >
+                          Manage Permissions
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      </Modal>
-    )}
-  </AppLayout>
-);
 
+        {/* Users Table */}
+    
+<div className="w-full overflow-x-auto mt-8">
+  <h2 className="text-xl font-bold mb-4">Users</h2>
+  <table className="w-full min-w-[400px] border-collapse border rounded-lg shadow-md overflow-hidden">
+    <thead>
+      <tr className="bg-gray-100 dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200">
+        <th className="border px-4 py-2 text-center w-16">ID</th>
+        <th className="border px-4 py-2 text-left">Name</th>
+        <th className="border px-4 py-2 text-left">Email</th>
+        <th className="border px-4 py-2 text-center w-40">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {loading ? (
+        <tr>
+          <td colSpan={4} className="text-center p-4">
+            Loading users...
+          </td>
+        </tr>
+      ) : users.length === 0 ? (
+        <tr>
+          <td colSpan={4} className="text-center p-4">
+            No users found
+          </td>
+        </tr>
+      ) : (
+        users.map((user) => (
+          <tr
+            key={user.id}
+            className="text-sm odd:bg-white even:bg-gray-50 hover:bg-gray-100 dark:odd:bg-gray-900 dark:even:bg-gray-800 dark:hover:bg-gray-700 transition"
+          >
+            <td className="border px-3 py-2 text-center">{user.id}</td>
+            <td
+              className="border px-3 py-2 text-left truncate"
+              title={user.name}
+            >
+              {user.name}
+            </td>
+            <td
+              className="border px-3 py-2 text-left truncate"
+              title={user.email}
+            >
+              {user.email}
+            </td>
+            <td className="border px-3 py-2 text-center">
+              <button
+                onClick={() => handleSelectUser(user)}
+                className="px-3 py-1 rounded-md text-white text-sm bg-purple-600 hover:bg-purple-500 transition"
+              >
+                Manage Roles
+              </button>
+            </td>
+          </tr>
+        ))
+      )}
+    </tbody>
+  </table>
+</div>
 
+      </div>
+
+      {/* Permissions Modal */}
+      {selectedRole && (
+        <Modal isOpen={!!selectedRole} onClose={() => setSelectedRole(null)}>
+          <div className="p-6 max-w-2xl">
+            <h3 className="text-lg font-semibold mb-4">
+              Manage Permissions for{" "}
+              <span className="text-blue-600">{selectedRole.ROLE_NAME}</span>
+            </h3>
+
+            <div className="grid grid-cols-2 gap-3">
+              {permissions.map((perm) => (
+                <label
+                  key={perm.PERMISSION_ID}
+                  className="flex items-center space-x-2"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedPermissions.includes(
+                      Number(perm.PERMISSION_ID)
+                    )}
+                    onChange={() => togglePermission(Number(perm.PERMISSION_ID))}
+                  />
+                  <span>{perm.PERMISSION_NAME}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setSelectedRole(null)}
+              >
+                Close
+              </Button>
+              <Button onClick={savePermissions} disabled={assigning}>
+                Save
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* User Roles Modal */}
+      {selectedUser && (
+        <Modal isOpen={!!selectedUser} onClose={() => setSelectedUser(null)}>
+          <div className="p-6 max-w-2xl">
+            <h3 className="text-lg font-semibold mb-4">
+              Manage Roles for{" "}
+              <span className="text-blue-600">{selectedUser.name}</span>
+            </h3>
+
+            <div className="grid grid-cols-2 gap-3">
+              {roles.map((role) => (
+                <label key={role.ROLE_ID} className="flex items-center space-x-2">
+                <input
+  type="checkbox"
+  checked={userRoles.includes(Number(role.ROLE_ID))}
+  onChange={() => toggleUserRole(Number(role.ROLE_ID))}
+/>
+
+                  <span>{role.ROLE_NAME}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setSelectedUser(null)}>
+                Close
+              </Button>
+              <Button onClick={saveUserRoles} disabled={assigningRole}>
+                Save
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </AppLayout>
+  );
 }

@@ -82,7 +82,7 @@ class CourseController extends Controller
     $course->CREATED_BY  = $userId;
     $course->CREATED_AT  = now();
 
-    // ✅ Handle file upload
+    // Handle file upload
     if ($request->hasFile('ATTACHMENTS')) {
         $path = $request->file('ATTACHMENTS')->store('courses', 'public');
         $course->ATTACHMENTS = $path;

@@ -22,7 +22,7 @@ interface Subcourse {
   DESCRIPTION?: string;
   ATTACHMENTS?: string | null;
   ATTACHMENT_URL?: string | null;
-  COURSE_NAME?: string; // added for UI rendering
+  COURSE_NAME?: string; 
 }
 
 type FormState = {
@@ -103,7 +103,7 @@ export default function Subcourses() {
     });
     setErrors({});
 
-    // clear file input field manually
+    // clear file input field 
   if (fileInputRef.current) {
     fileInputRef.current.value = "";
   }

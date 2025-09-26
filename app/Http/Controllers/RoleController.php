@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Role;
 use App\Models\Permission;
 use Illuminate\Http\Request;
@@ -215,5 +216,55 @@ public function assignPermissions(Request $request, $roleId)
     ]);
 }
 
+
+// Assign a role to a user
+public function assignRoleToUser(Request $request, $userId)
+{
+    $request->validate([
+        'role_id' => 'required|integer|exists:LMS.ROLES,ROLE_ID',
+    ]);
+
+    $authId = auth()->user()->id;
+    $roleId = $request->role_id;
+
+    $user = User::findOrFail($userId);
+
+    // Attach role (with pivot data)
+    $user->roles()->syncWithoutDetaching([
+        $roleId => [
+            'CREATED_BY' => $authId,
+            'CREATED_AT' => now()->format('Y-m-d H:i:s'),
+        ],
+    ]);
+
+    return response()->json([
+        'message' => "Role assigned successfully",
+        'user'    => $user->load('roles'),
+    ]);
+}
+
+// Remove a role from a user (optional helper)
+public function removeRoleFromUser($userId, $roleId)
+{
+    $authId = auth()->user()->id;
+
+    $user = User::findOrFail($userId);
+
+    // Soft delete instead of detach
+    \DB::connection('oracle')
+        ->table('LMS.USER_ROLE')
+        ->where('USER_ID', $userId)
+        ->where('ROLE_ID', $roleId)
+        ->whereNull('DELETED_AT')
+        ->update([
+            'DELETED_BY' => $authId,
+            'DELETED_AT' => now()->format('Y-m-d H:i:s'),
+        ]);
+
+    return response()->json([
+        'message' => "Role removed successfully",
+        'user'    => $user->load('roles'),
+    ]);
+}
 
 }

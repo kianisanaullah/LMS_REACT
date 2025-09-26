@@ -10,7 +10,7 @@ class User extends Authenticatable
 {
     use HasApiTokens, Notifiable;
 
-    protected $connection = 'oracle'; // your DB connection name in config/database.php
+    protected $connection = 'oracle'; 
     protected $table = 'LMS.USERS';
     protected $primaryKey = 'ID';
     public $timestamps = false;
@@ -44,11 +44,20 @@ class User extends Authenticatable
      *   RELATIONS
      *  ====================== */
 
-   public function roles()
-{
-    return $this->hasMany(Role::class, 'USER_ID', 'ID');
-}
-
+    // A user can have many roles through USER_ROLE
+    public function roles()
+    {
+        return $this->belongsToMany(
+            Role::class,
+            'LMS.USER_ROLE', // pivot table
+            'USER_ID',       // FK in USER_ROLE
+            'ROLE_ID'        // FK in USER_ROLE
+        )->withPivot([
+            'CREATED_BY', 'CREATED_AT',
+            'UPDATED_BY', 'UPDATED_AT',
+            'DELETED_BY', 'DELETED_AT'
+        ])->wherePivotNull('DELETED_AT');
+    }
 
     /** ======================
      *   HELPER METHODS
