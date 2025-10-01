@@ -8,6 +8,7 @@ import axios from "axios";
 import AppLayout from "@/layouts/app-layout";   
 import { type BreadcrumbItem } from "@/types";
 import Modal from "@/components/ui/modal";
+import { usePage } from "@inertiajs/react";
 
 
 interface Course {
@@ -44,6 +45,16 @@ export default function Subcourses() {
   const [loading, setLoading] = useState(true);
   const [selectedSubcourse, setSelectedSubcourse] = useState<any | null>(null);
    const fileInputRef = useRef<HTMLInputElement | null>(null);
+   const { auth } = usePage().props as any;
+   const permissions: string[] = auth?.permissions || [];
+
+
+
+
+   const canCreate = permissions.includes("create-subcourse");
+const canEdit   = permissions.includes("edit-subcourse");
+const canDelete = permissions.includes("delete-subcourse");
+
 
   const [form, setForm] = useState<FormState>({
     id: null,
@@ -265,9 +276,9 @@ export default function Subcourses() {
           />
         </div>
 
-        <Button type="submit" disabled={processing}>
-          {form.id ? "Update Subcourse" : "Add Subcourse"}
-        </Button>
+       <Button type="submit" disabled={processing || (!form.id && !canCreate)}>
+  {form.id ? "Update SubCourse" : "Add SubCourse"}
+</Button>
         {form.id && (
           <Button
             type="button"
@@ -335,18 +346,22 @@ export default function Subcourses() {
             </td>
             <td className="border dark:border-gray-700 px-3 py-2 text-center">
               <div className="flex justify-center gap-2 flex-wrap">
+                 {canEdit && (
                 <button
                   onClick={() => handleEdit(sub)}
                   className="px-3 py-1 rounded-md text-white text-sm bg-blue-600 hover:bg-blue-500 transition"
                 >
                   Edit
                 </button>
+                 )}
+                   {canDelete && (
                 <button
                   onClick={() => handleDelete(sub.ID)}
                   className="px-3 py-1 rounded-md text-white text-sm bg-red-600 hover:bg-red-500 transition"
                 >
                   Delete
                 </button>
+                  )}
                 <button
                   onClick={() => setSelectedSubcourse(sub)}
                   className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"

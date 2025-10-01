@@ -8,6 +8,7 @@ import axios from "axios";
 import AppLayout from "@/layouts/app-layout";   
 import { type BreadcrumbItem } from "@/types";
 import Modal from "@/components/ui/modal";
+import { usePage } from "@inertiajs/react";
 
 
 interface Course {
@@ -38,6 +39,13 @@ export default function Courses() {
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+const { auth } = usePage().props as any;
+const permissions: string[] = auth?.permissions || [];
+
+
+const canCreate = permissions.includes("create-course");
+const canEdit   = permissions.includes("edit-course");
+const canDelete = permissions.includes("delete-course");
 
 
   const [form, setForm] = useState<FormState>({
@@ -232,9 +240,10 @@ return (
 
         </div>
 
-        <Button type="submit" disabled={processing}>
-          {form.id ? "Update Course" : "Add Course"}
-        </Button>
+       <Button type="submit" disabled={processing || (!form.id && !canCreate)}>
+  {form.id ? "Update Course" : "Add Course"}
+</Button>
+
         {form.id && (
           <Button
             type="button"
@@ -305,28 +314,33 @@ return (
                 <span className="text-gray-400 dark:text-gray-500">No File</span>
               )}
             </td>
-            <td className="border px-3 py-2 text-center">
-              <div className="flex justify-center gap-2 flex-wrap">
-                <button
-                  onClick={() => handleEdit(course)}
-                  className="px-3 py-1 rounded-md text-white text-sm bg-blue-600 hover:bg-blue-500 transition"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(course.ID)}
-                  className="px-3 py-1 rounded-md text-white text-sm bg-red-600 hover:bg-red-500 transition"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={() => setSelectedCourse(course)}
-                  className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"
-                >
-                  View
-                </button>
-              </div>
-            </td>
+          <td className="border px-3 py-2 text-center">
+  <div className="flex justify-center gap-2 flex-wrap">
+    {canEdit && (
+      <button
+        onClick={() => handleEdit(course)}
+        className="px-3 py-1 rounded-md text-white text-sm bg-blue-600 hover:bg-blue-500 transition"
+      >
+        Edit
+      </button>
+    )}
+    {canDelete && (
+      <button
+        onClick={() => handleDelete(course.ID)}
+        className="px-3 py-1 rounded-md text-white text-sm bg-red-600 hover:bg-red-500 transition"
+      >
+        Delete
+      </button>
+    )}
+    <button
+      onClick={() => setSelectedCourse(course)}
+      className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"
+    >
+      View
+    </button>
+  </div>
+</td>
+
           </tr>
         ))
       )}

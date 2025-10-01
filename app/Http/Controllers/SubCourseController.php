@@ -9,7 +9,6 @@ use Inertia\Inertia;
 
 class SubcourseController extends Controller
 {
-    
     public function indexPage()
     {
         return Inertia::render('Subcourses');
@@ -18,10 +17,7 @@ class SubcourseController extends Controller
     // API Methods
     public function index()
     {
-        $userId = auth()->user()->id;
-
-        return Subcourse::where('USER_ID', $userId)
-            ->whereNull('DELETED_AT')
+        return Subcourse::whereNull('DELETED_AT')
             ->with('course') 
             ->get()
             ->map(function ($subcourse) {
@@ -37,10 +33,7 @@ class SubcourseController extends Controller
 
     public function show($id)
     {
-        $userId = auth()->user()->id;
-
         $subcourse = Subcourse::where('ID', $id)
-            ->where('USER_ID', $userId)
             ->with('course')
             ->firstOrFail();
 
@@ -53,53 +46,45 @@ class SubcourseController extends Controller
         return $subcourse;
     }
 
-  
     public function store(Request $request)
-{
-    $request->validate([
-        'COURSE_ID'      => 'required|integer',
-        'SUBCOURSE_NAME' => 'required|string|max:255',
-        'DESCRIPTION'    => 'nullable|string',
-        'ATTACHMENTS'    => 'nullable|file|max:5120',
-    ]);
+    {
+        $request->validate([
+            'COURSE_ID'      => 'required|integer',
+            'SUBCOURSE_NAME' => 'required|string|max:255',
+            'DESCRIPTION'    => 'nullable|string',
+            'ATTACHMENTS'    => 'nullable|file|max:5120',
+        ]);
 
-   
-    if (!Course::where('ID', $request->COURSE_ID)->exists()) {
-        return response()->json(['error' => 'Invalid COURSE_ID'], 422);
+        if (!Course::where('ID', $request->COURSE_ID)->exists()) {
+            return response()->json(['error' => 'Invalid COURSE_ID'], 422);
+        }
+
+        $userId = auth()->user()->id;
+
+        $subcourse = new Subcourse();
+        $subcourse->COURSE_ID      = $request->COURSE_ID;
+        $subcourse->SUBCOURSE_NAME = $request->SUBCOURSE_NAME;
+        $subcourse->DESCRIPTION    = $request->DESCRIPTION;
+        $subcourse->USER_ID        = $userId;
+        $subcourse->CREATED_BY     = $userId;
+        $subcourse->CREATED_AT     = now();
+
+        if ($request->hasFile('ATTACHMENTS')) {
+            $path = $request->file('ATTACHMENTS')->store('subcourses', 'public');
+            $subcourse->ATTACHMENTS = $path;
+        }
+
+        $subcourse->save();
+
+        $subcourse->course_name = $subcourse->course->COURSE_NAME ?? null;
+        $subcourse->attachment_url = $subcourse->ATTACHMENTS
+            ? asset('storage/' . $subcourse->ATTACHMENTS)
+            : null;
+
+        return response()->json($subcourse, 201);
     }
 
-    $userId = auth()->user()->id;
-
-    $subcourse = new Subcourse();
-    $subcourse->COURSE_ID      = $request->COURSE_ID;
-    $subcourse->SUBCOURSE_NAME = $request->SUBCOURSE_NAME;
-    $subcourse->DESCRIPTION    = $request->DESCRIPTION;
-    $subcourse->USER_ID        = $userId;
-    $subcourse->CREATED_BY     = $userId;
-    $subcourse->CREATED_AT     = now();
-
-    if ($request->hasFile('ATTACHMENTS')) {
-        $path = $request->file('ATTACHMENTS')->store('subcourses', 'public');
-        $subcourse->ATTACHMENTS = $path;
-    }
-
-    $subcourse->save();
-
-   
-    $subcourse->course_name = $subcourse->course->COURSE_NAME ?? null;
-    $subcourse->attachment_url = $subcourse->ATTACHMENTS
-        ? asset('storage/' . $subcourse->ATTACHMENTS)
-        : null;
-
-    return response()->json($subcourse, 201);
-}
-
-
-
-
-
-
-   public function update(Request $request, $id)
+    public function update(Request $request, $id)
     {
         $userId = auth()->user()->id;
 
@@ -124,18 +109,13 @@ class SubcourseController extends Controller
 
         $updated = \DB::table('LMS.SUBCOURSES')
             ->where('ID', $id)
-            ->where('USER_ID', $userId)
             ->update($data);
 
         if (!$updated) {
             return response()->json(['error' => 'Subcourse not found'], 404);
         }
 
-    $subcourse = Subcourse::where('ID', $id)
-    ->where('USER_ID', $userId)
-    ->firstOrFail();
-
-
+        $subcourse = Subcourse::where('ID', $id)->firstOrFail();
 
         if (!empty($subcourse->ATTACHMENTS ?? $subcourse->attachments)) {
             $file = $subcourse->ATTACHMENTS ?? $subcourse->attachments;
@@ -149,8 +129,6 @@ class SubcourseController extends Controller
         return response()->json($subcourse, 200);
     }
 
-    
-
     public function destroy($id)
     {
         $userId = auth()->user()->id;
@@ -162,7 +140,6 @@ class SubcourseController extends Controller
 
         $deleted = \DB::table('LMS.SUBCOURSES')
             ->where('ID', $id)
-            ->where('USER_ID', $userId)
             ->update($data);
 
         if (!$deleted) {

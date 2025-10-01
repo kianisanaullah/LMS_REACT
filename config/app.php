@@ -123,4 +123,21 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    
+ /*
+     * Laravel Framework Service Providers...
+     */
+    Illuminate\Filesystem\FilesystemServiceProvider::class, // ✅ important
+
+    /*
+     * Package Service Providers...
+     */
+    Laravel\Sanctum\SanctumServiceProvider::class,
+
+    /*
+     * Application Service Providers...
+     */
+    App\Providers\AppServiceProvider::class,
+
+
 ];

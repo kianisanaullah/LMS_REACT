@@ -2,34 +2,37 @@
 
 return [
 
-    'models' => [
-
-        'permission' => Spatie\Permission\Models\Permission::class,
-
-        'role' => Spatie\Permission\Models\Role::class,
-    ],
-
-    'table_names' => [
-
-        // ✅ Now all tables will be created in LMS schema
-        'roles' => 'LMS.APP_ROLES',
-
-        'permissions' => 'LMS.APP_PERMISSIONS',
-
-        'model_has_permissions' => 'LMS.APP_MODEL_HAS_PERMISSIONS',
-
-        'model_has_roles' => 'LMS.APP_MODEL_HAS_ROLES',
-
-        'role_has_permissions' => 'LMS.APP_ROLE_HAS_PERMISSIONS',
-    ],
+   'models' => [
+    'role'       => App\Models\CustomRole::class,
+    'permission' => App\Models\CustomPermission::class,
+],
 
 
-    'column_names' => [
-        'role_pivot_key' => null, // default 'role_id',
-        'permission_pivot_key' => null, // default 'permission_id',
-        'model_morph_key' => 'model_id',
-        'team_foreign_key' => 'team_id',
-    ],
+ 'table_names' => [
+    'roles' => 'LMS.ROLES',
+    'permissions' => 'LMS.PERMISSIONS',
+    'model_has_permissions' => 'LMS.USER_PERMISSION', // ← your pivot for user-permissions
+    'model_has_roles' => 'LMS.USER_ROLE',            // ← your pivot for user-roles
+    'role_has_permissions' => 'LMS.PERMISSION_ROLE', // ← your pivot for role-permissions
+],
+
+
+ 'column_names' => [
+    /*
+     * Default Spatie keys are:
+     *   role_pivot_key         => 'role_id'
+     *   permission_pivot_key   => 'permission_id'
+     *   model_morph_key        => 'model_id'
+     *
+     * Your Oracle columns are UPPERCASE and different,
+     * so set them here:
+     */
+    'role_pivot_key'       => 'ROLE_ID',        // PK in LMS.ROLES
+    'permission_pivot_key' => 'PERMISSION_ID',  // PK in LMS.PERMISSIONS
+    'model_morph_key'      => 'USER_ID',        // Morph key in LMS.USER_ROLE / LMS.USER_PERMISSION
+    'team_foreign_key'     => 'TEAM_ID',        // only if you ever enable teams
+],
+
 
     'register_permission_check_method' => true,
 

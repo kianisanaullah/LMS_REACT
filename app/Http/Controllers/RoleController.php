@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class RoleController extends Controller
 {
+
+    
     // Show roles page
     public function indexPage()
     {
@@ -23,24 +25,16 @@ class RoleController extends Controller
         ]);
     }
 
-    // List roles (with permissions)
-    public function index()
-    {
-        $userId = auth()->user()->id;
-
-        return Role::with('permissions')
-            ->where('USER_ID', $userId)
-            ->whereNull('DELETED_AT')
-            ->get();
-    }
-
-  public function show($id)
+   public function index()
 {
-    $userId = auth()->user()->id;
+    return Role::with('permissions')
+        ->whereNull('DELETED_AT')
+        ->get();
+}
 
-    $role = Role::where('ROLE_ID', $id)
-        ->where('USER_ID', $userId)
-        ->firstOrFail();
+public function show($id)
+{
+    $role = Role::where('ROLE_ID', $id)->firstOrFail();
 
     $permissions = DB::connection('oracle')
         ->table('LMS.PERMISSIONS as p')
@@ -95,8 +89,7 @@ class RoleController extends Controller
 }
 
 
-    // Update role
-   public function update(Request $request, $id)
+    public function update(Request $request, $id)
 {
     $userId = auth()->user()->id;
 
@@ -111,7 +104,6 @@ class RoleController extends Controller
 
     $updated = DB::table('LMS.ROLES')
         ->where('ROLE_ID', $id)
-        ->where('USER_ID', $userId)
         ->update($data);
 
     if (!$updated) {
@@ -120,15 +112,13 @@ class RoleController extends Controller
 
     $role = DB::table('LMS.ROLES')
         ->where('ROLE_ID', $id)
-        ->where('USER_ID', $userId)
         ->first();
 
     return response()->json($role, 200);
 }
 
-
-    // Soft delete
- public function destroy($id)
+// Soft delete role
+public function destroy($id)
 {
     $userId = auth()->user()->id;
 
@@ -139,7 +129,6 @@ class RoleController extends Controller
 
     $deleted = DB::table('LMS.ROLES')
         ->where('ROLE_ID', $id)
-        ->where('USER_ID', $userId)
         ->update($data);
 
     if (!$deleted) {
