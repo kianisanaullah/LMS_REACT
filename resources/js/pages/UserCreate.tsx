@@ -8,7 +8,7 @@ import axios from "axios";
 import AppLayout from "@/layouts/app-layout";
 import { type BreadcrumbItem } from "@/types";
 
-// ✅ import Alert
+// import Alert
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 type FormState = {
@@ -33,7 +33,7 @@ export default function UserCreate() {
   const [errors, setErrors] = useState<Partial<FormState>>({});
   const [processing, setProcessing] = useState(false);
 
-  // ✅ State for showing alerts
+  //  State for showing alerts
   const [alert, setAlert] = useState<{
     title: string;
     description: string;
@@ -89,7 +89,7 @@ export default function UserCreate() {
       <div className="p-6">
         <h2 className="text-xl font-bold mb-4">Create New User</h2>
 
-        {/* ✅ Show Alert if exists */}
+        {/*  Show Alert if exists */}
         {alert && (
           <Alert variant={alert.variant} className="mb-4">
             <AlertTitle>{alert.title}</AlertTitle>

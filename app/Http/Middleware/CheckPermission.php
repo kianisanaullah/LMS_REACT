@@ -22,7 +22,7 @@ class CheckPermission
             return response()->json(['error' => 'Unauthorized (no userId)'], 401);
         }
 
-        // ✅ Step 1: Get user role IDs
+        //  Step 1: Get user role IDs
         $roleIds = DB::connection('oracle')
             ->table('lms.user_role as ur')
             ->join('lms.roles as r', 'ur.role_id', '=', 'r.role_id')
@@ -36,7 +36,7 @@ class CheckPermission
             return response()->json(['error' => 'Forbidden (no roles assigned)'], 403);
         }
 
-        // ✅ Step 2: Get permissions for these roles
+        //  Step 2: Get permissions for these roles
         $permissions = DB::connection('oracle')
             ->table('lms.permission_role as pr')
             ->join('lms.permissions as p', 'pr.permission_id', '=', 'p.permission_id')

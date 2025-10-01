@@ -112,7 +112,7 @@ Route::delete('/subcourses/{id}', [SubcourseController::class, 'destroy'])
     Route::get('/users', [UserController::class, 'indexPage'])->name('users.page');
     Route::get('/users/list', [UserController::class, 'index']);
 
-    // ✅ still manual permission check in controller
+    //permission check in controller
     Route::get('/users/create', fn () => Inertia::render('UserCreate'))
         ->name('users.create');
 

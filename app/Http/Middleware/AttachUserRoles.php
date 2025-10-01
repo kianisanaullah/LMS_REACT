@@ -17,10 +17,10 @@ class AttachUserRoles
             return $next($request);
         }
 
-        // ✅ Always get the user ID via auth()
+        // Always get the user ID via auth()
         $userId = auth()->user()->id;
 
-        // ✅ Fetch roles from Oracle with alias
+        // Fetch roles from Oracle with alias
         $roles = DB::connection('oracle')
             ->table('LMS.USER_ROLE as ur')
             ->join('LMS.ROLES as r', 'ur.ROLE_ID', '=', 'r.ROLE_ID')

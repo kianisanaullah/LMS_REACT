@@ -11,7 +11,7 @@ class AdminOnly
     {
         $user = $request->user();
 
-        // ✅ Check if user exists and isAdmin flag is set
+        //  Check if user exists and isAdmin flag is set
         if (! $user || ! ($user->isAdmin ?? false)) {
             return response()->json([
                 'error' => 'Unauthorized. Only Admin can manage roles.'
