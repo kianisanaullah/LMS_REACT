@@ -9,6 +9,8 @@ import AppLayout from "@/layouts/app-layout";
 import { type BreadcrumbItem } from "@/types";
 import Modal from "@/components/ui/modal";
 import { usePage } from "@inertiajs/react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+
 
 
 interface Course {
@@ -24,6 +26,7 @@ interface Subcourse {
   ATTACHMENTS?: string | null;
   ATTACHMENT_URL?: string | null;
   COURSE_NAME?: string; 
+  APPROVED?: number;
 }
 
 type FormState = {
@@ -47,6 +50,12 @@ export default function Subcourses() {
    const fileInputRef = useRef<HTMLInputElement | null>(null);
    const { auth } = usePage().props as any;
    const permissions: string[] = auth?.permissions || [];
+   const [alert, setAlert] = useState<{
+  title: string;
+  description: string;
+  variant?: "default" | "destructive";
+} | null>(null);
+
 
 
 
@@ -77,6 +86,8 @@ const canDelete = permissions.includes("delete-subcourse");
       ATTACHMENTS: file,
       ATTACHMENT_URL: s.attachment_url ?? (file ? `/storage/${file}` : null),
       COURSE_NAME: s.COURSE_NAME ?? s.course_name, 
+     APPROVED: Number(s.APPROVED ?? s.approved ?? 0),
+      
     };
   }
 
@@ -146,24 +157,56 @@ const canDelete = permissions.includes("delete-subcourse");
       });
     }
 
-    request
-      .then((res) => {
-        const updated = mapSubcourse(res.data);
+  request
+  .then((res) => {
+    const updated = mapSubcourse(res.data);
 
-     
-        const course = courses.find((c) => c.ID === updated.COURSE_ID);
-        if (course) updated.COURSE_NAME = course.COURSE_NAME;
+    const course = courses.find((c) => c.ID === updated.COURSE_ID);
+    if (course) updated.COURSE_NAME = course.COURSE_NAME;
 
-        setSubcourses((prev) =>
-          form.id
-            ? prev.map((s) => (s.ID === form.id ? updated : s))
-            : [updated, ...prev]
-        );
-        resetForm();
-      })
-      .catch((err) => setErrors(err.response?.data?.errors || {}))
-      .finally(() => setProcessing(false));
-  };
+    setSubcourses((prev) =>
+      form.id
+        ? prev.map((s) => (s.ID === form.id ? updated : s))
+        : [updated, ...prev]
+    );
+
+    // ✅ Show alert based on approval status
+    if (updated.APPROVED === 0) {
+      setAlert({
+        title: "Pending Approval",
+        description: "Subcourse created successfully, pending admin approval.",
+        variant: "default",
+      });
+    } else {
+      setAlert({
+        title: "Success",
+        description: "Subcourse created and approved successfully.",
+        variant: "default",
+      });
+    }
+
+    resetForm();
+  })
+  .catch((err) => {
+    if (err.response?.status === 422) {
+      setErrors(err.response.data.errors || {});
+    } else if (err.response?.status === 403) {
+      setAlert({
+        title: "Forbidden",
+        description: "You don’t have permission to create a subcourse.",
+        variant: "destructive",
+      });
+    } else {
+      console.error(err);
+      setAlert({
+        title: "Error",
+        description: "Something went wrong while creating the subcourse.",
+        variant: "destructive",
+      });
+    }
+  })
+  .finally(() => setProcessing(false));
+  }
 
   const handleEdit = (sub: Subcourse) => {
     setForm({
@@ -182,6 +225,58 @@ const canDelete = permissions.includes("delete-subcourse");
     });
   };
 
+const [pending, setPending] = useState<Subcourse[]>([]);
+
+
+const canApprove = permissions.includes("approve-subcourse");
+
+useEffect(() => {
+  if (canApprove) {
+    axios.get("/subcourses/pending")
+      .then((res) => {
+        setPending(res.data.map((s: any) => {
+          const mapped = mapSubcourse(s);
+          const course = courses.find(c => c.ID === mapped.COURSE_ID);
+          return { ...mapped, COURSE_NAME: course?.COURSE_NAME || null };
+        }));
+      })
+      .catch((err) => {
+        if (err.response?.status === 403) {
+          console.warn("Not allowed to fetch pending subcourses");
+        }
+      });
+  }
+}, [canApprove, courses]);
+
+
+
+const approveSubcourse = (id: number) => {
+  axios.post(`/subcourses/${id}/approve`)
+    .then(() => {
+      setPending((prev) => prev.filter((s) => s.ID !== id));
+      setSubcourses((prev) => {
+        const approved = pending.find((s) => s.ID === id);
+        if (approved) {
+          return [{ ...approved, APPROVED: 1 }, ...prev];
+        }
+        return prev;
+      });
+      setAlert({
+        title: "Approved",
+        description: "Subcourse approved successfully.",
+        variant: "default",
+      });
+    })
+    .catch(() => {
+      setAlert({
+        title: "Error",
+        description: "Could not approve the subcourse.",
+        variant: "destructive",
+      });
+    });
+};
+
+
  return (
   <AppLayout breadcrumbs={breadcrumbs}>
     <Head title="Subcourses Management" />
@@ -189,6 +284,13 @@ const canDelete = permissions.includes("delete-subcourse");
     <div className="p-6">
       <h2 className="text-xl font-bold mb-4">Subcourses Management</h2>
 
+ {/* ✅ Show Alert if exists */}
+      {alert && (
+        <Alert variant={alert.variant} className="mb-4">
+          <AlertTitle>{alert.title}</AlertTitle>
+          <AlertDescription>{alert.description}</AlertDescription>
+        </Alert>
+      )}
       {/* Form */}
       <form
         onSubmit={handleSubmit}
@@ -290,6 +392,43 @@ const canDelete = permissions.includes("delete-subcourse");
           </Button>
         )}
       </form>
+
+      {/* Pending Subcourses Section */}
+{canApprove && pending.length > 0 && (
+  <div className="mb-6">
+    <h3 className="text-lg font-semibold mb-3">Pending Subcourses</h3>
+    <div className="space-y-3">
+      {pending.map((s: Subcourse) => (
+        <div key={s.ID} className="flex items-center justify-between border rounded p-3 bg-yellow-50 dark:bg-yellow-900">
+          <div>
+            <h4 className="font-medium">{s.SUBCOURSE_NAME}</h4>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              {s.COURSE_NAME || "No course name"}
+            </p>
+          </div>
+        <div className="flex gap-2">
+  <button
+    onClick={() => setSelectedSubcourse(s)}
+    className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"
+  >
+    View
+  </button>
+
+  <button
+    onClick={() => approveSubcourse(s.ID)}
+    className="px-3 py-1 rounded-md text-white text-sm bg-green-600 hover:bg-green-500 transition"
+  >
+    Approve
+  </button>
+</div>
+
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+
 
     {/* Table */}
 {/* Responsive Table Wrapper */}

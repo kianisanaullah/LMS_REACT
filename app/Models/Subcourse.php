@@ -25,7 +25,8 @@ protected $fillable = [
     'DELETED_BY',
     'DELETED_AT',
     'USER_ID',
-    'ATTACHMENTS',  
+    'ATTACHMENTS', 
+    'APPROVED', 
 ];
 
 
@@ -33,6 +34,7 @@ protected $fillable = [
         'CREATED_AT' => 'datetime',
         'UPDATED_AT' => 'datetime',
         'DELETED_AT' => 'datetime',
+        'APPROVED'   => 'boolean',
 
         'ATTACHMENTS' => 'string', 
     

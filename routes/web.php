@@ -21,32 +21,34 @@ Route::middleware(['auth', 'attach.roles'])->group(function () {
     // =======================
     // Courses
     // =======================
-   
-Route::get('/courses', [CourseController::class, 'indexPage'])
-    ->name('courses.page')
-    ->middleware('must.have:view-course'); // 👀 Example permission for listing
+    Route::get('/courses', [CourseController::class, 'indexPage'])
+        ->name('courses.page')
+        ->middleware('must.have:view-course');
 
-Route::get('/courses/list', [CourseController::class, 'index'])
-    ->middleware('must.have:view-course');
+    Route::get('/courses/list', [CourseController::class, 'index'])
+        ->middleware('must.have:view-course');
 
-Route::post('/courses', [CourseController::class, 'store'])
-    ->middleware('must.have:create-course')
-    ->name('courses.store');
+    Route::post('/courses', [CourseController::class, 'store'])
+        ->middleware('must.have:create-course')
+        ->name('courses.store');
 
-Route::put('/courses/{id}', [CourseController::class, 'update'])
-    ->middleware('must.have:edit-course')
-    ->name('courses.update');
+    Route::put('/courses/{id}', [CourseController::class, 'update'])
+        ->middleware('must.have:edit-course')
+        ->name('courses.update');
 
-Route::delete('/courses/{id}', [CourseController::class, 'destroy'])
-    ->middleware('must.have:delete-course')
-    ->name('courses.destroy');
+    Route::delete('/courses/{id}', [CourseController::class, 'destroy'])
+        ->middleware('must.have:delete-course')
+        ->name('courses.destroy');
 
-Route::get('/courses/{id}', [CourseController::class, 'show'])
-    ->middleware('must.have:view-course')
-    ->name('courses.show');
+    Route::get('/courses/{id}', [CourseController::class, 'show'])
+        ->middleware('must.have:view-course')
+        ->name('courses.show');
 
 
-   // =======================
+    // =======================
+    // Subcourses
+    // =======================
+    // =======================
 // Subcourses
 // =======================
 Route::get('/subcourses', [SubcourseController::class, 'indexPage'])
@@ -60,6 +62,16 @@ Route::post('/subcourses', [SubcourseController::class, 'store'])
     ->name('subcourses.store')
     ->middleware('must.have:create-subcourse');
 
+// ✅ Put specific routes BEFORE the {id} catch-all
+Route::get('/subcourses/pending', [SubcourseController::class, 'pending'])
+    ->name('subcourses.pending')
+    ->middleware('must.have:approve-subcourse'); 
+
+Route::post('/subcourses/{id}/approve', [SubcourseController::class, 'approve'])
+    ->name('subcourses.approve')
+    ->middleware('must.have:approve-subcourse');
+
+// ⬇️ Now the wildcard route
 Route::get('/subcourses/{id}', [SubcourseController::class, 'show'])
     ->name('subcourses.show')
     ->middleware('must.have:view-subcourse');
@@ -73,8 +85,9 @@ Route::delete('/subcourses/{id}', [SubcourseController::class, 'destroy'])
     ->middleware('must.have:delete-subcourse');
 
 
+
     // =======================
-    // Roles & User ↔ Roles (protected by AdminOnly)
+    // Roles & User ↔ Roles (AdminOnly)
     // =======================
     Route::middleware(['admin.only'])->group(function () {
         // Roles
@@ -94,12 +107,10 @@ Route::delete('/subcourses/{id}', [SubcourseController::class, 'destroy'])
     // =======================
     // Permissions
     // =======================
-    // Everyone can see & list
     Route::get('/permissions', [PermissionController::class, 'indexPage'])->name('permissions.page');
     Route::get('/permissions/list', [PermissionController::class, 'index']);
     Route::get('/permissions/{id}', [PermissionController::class, 'show'])->name('permissions.show');
 
-    // Admin-only for CRUD
     Route::middleware(['admin.only'])->group(function () {
         Route::post('/permissions', [PermissionController::class, 'store'])->name('permissions.store');
         Route::put('/permissions/{id}', [PermissionController::class, 'update'])->name('permissions.update');
@@ -112,7 +123,6 @@ Route::delete('/subcourses/{id}', [SubcourseController::class, 'destroy'])
     Route::get('/users', [UserController::class, 'indexPage'])->name('users.page');
     Route::get('/users/list', [UserController::class, 'index']);
 
-    //permission check in controller
     Route::get('/users/create', fn () => Inertia::render('UserCreate'))
         ->name('users.create');
 

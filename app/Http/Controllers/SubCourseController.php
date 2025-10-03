@@ -14,15 +14,15 @@ class SubcourseController extends Controller
         return Inertia::render('Subcourses');
     }
 
-    // API Methods
+    // ✅ Only return APPROVED subcourses
     public function index()
     {
         return Subcourse::whereNull('DELETED_AT')
-            ->with('course') 
+            ->where('APPROVED', 1)
+            ->with('course')
             ->get()
             ->map(function ($subcourse) {
                 $subcourse->course_name = $subcourse->course ? $subcourse->course->COURSE_NAME : null;
-
                 $subcourse->attachment_url = $subcourse->ATTACHMENTS
                     ? asset('storage/' . $subcourse->ATTACHMENTS)
                     : null;
@@ -38,7 +38,6 @@ class SubcourseController extends Controller
             ->firstOrFail();
 
         $subcourse->course_name = $subcourse->course ? $subcourse->course->COURSE_NAME : null;
-
         $subcourse->attachment_url = $subcourse->ATTACHMENTS
             ? asset('storage/' . $subcourse->ATTACHMENTS)
             : null;
@@ -68,6 +67,10 @@ class SubcourseController extends Controller
         $subcourse->USER_ID        = $userId;
         $subcourse->CREATED_BY     = $userId;
         $subcourse->CREATED_AT     = now();
+
+        // ✅ Auto approve if user is Admin
+       $isAdmin = auth()->user()->isAdmin ?? false;
+$subcourse->APPROVED = $isAdmin ? 1 : 0;
 
         if ($request->hasFile('ATTACHMENTS')) {
             $path = $request->file('ATTACHMENTS')->store('subcourses', 'public');
@@ -116,14 +119,9 @@ class SubcourseController extends Controller
         }
 
         $subcourse = Subcourse::where('ID', $id)->firstOrFail();
-
-        if (!empty($subcourse->ATTACHMENTS ?? $subcourse->attachments)) {
-            $file = $subcourse->ATTACHMENTS ?? $subcourse->attachments;
-            $subcourse->attachment_url = asset('storage/' . $file);
-        } else {
-            $subcourse->attachment_url = null;
-        }
-
+        $subcourse->attachment_url = $subcourse->ATTACHMENTS
+            ? asset('storage/' . $subcourse->ATTACHMENTS)
+            : null;
         $subcourse->course_name = Course::find($subcourse->COURSE_ID)->COURSE_NAME ?? null;
 
         return response()->json($subcourse, 200);
@@ -148,4 +146,36 @@ class SubcourseController extends Controller
 
         return response()->json(['message' => 'Subcourse deleted successfully']);
     }
+
+    // ✅ Extra methods
+
+    public function pending()
+    {
+        return Subcourse::whereNull('DELETED_AT')
+            ->where('APPROVED', 0)
+            ->with('course')
+            ->get();
+    }
+
+public function approve($id)
+{
+    $userId = auth()->user()->id ?? 1;
+
+    $data = [
+        'APPROVED'   => 1,
+        'UPDATED_BY' => $userId,
+        'UPDATED_AT' => now()->format('Y-m-d H:i:s'),
+    ];
+
+    $updated = \DB::table('LMS.SUBCOURSES')
+        ->where('ID', $id)
+        ->update($data);
+
+    if (!$updated) {
+        return response()->json(['error' => 'Subcourse not found'], 404);
+    }
+
+    return response()->json(['message' => 'Subcourse approved successfully']);
+}
+
 }
