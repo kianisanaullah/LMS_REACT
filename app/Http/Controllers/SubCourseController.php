@@ -47,7 +47,7 @@ class SubcourseController extends Controller
 
     public function store(Request $request)
     {
-        // ✅ File validation with restriction
+        // File validation with restriction
         $request->validate([
             'COURSE_ID'      => 'required|integer',
             'SUBCOURSE_NAME' => 'required|string|max:255',
@@ -55,7 +55,7 @@ class SubcourseController extends Controller
             'ATTACHMENTS'    => 'nullable|file|max:5120', // 5MB
         ]);
 
-        // ✅ File type restriction check
+        // File type restriction check
         if ($request->hasFile('ATTACHMENTS')) {
             $ext = strtolower($request->file('ATTACHMENTS')->getClientOriginalExtension());
             $allowed = ['pdf', 'png', 'doc', 'docx', 'ppt', 'pptx'];
@@ -107,7 +107,7 @@ class SubcourseController extends Controller
     {
         $userId = auth()->user()->id;
 
-        // ✅ Validate file and size
+        // Validate file and size
         $request->validate([
             'COURSE_ID'      => 'nullable|integer',
             'SUBCOURSE_NAME' => 'nullable|string|max:255',
@@ -115,7 +115,7 @@ class SubcourseController extends Controller
             'ATTACHMENTS'    => 'nullable|file|max:5120', // 5MB
         ]);
 
-        // ✅ Restrict invalid file types
+        // Restrict invalid file types
         if ($request->hasFile('ATTACHMENTS')) {
             $ext = strtolower($request->file('ATTACHMENTS')->getClientOriginalExtension());
             $allowed = ['pdf', 'png', 'doc', 'docx', 'ppt', 'pptx'];

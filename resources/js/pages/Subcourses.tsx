@@ -9,7 +9,6 @@ import AppLayout from "@/layouts/app-layout";
 import { type BreadcrumbItem } from "@/types";
 import Modal from "@/components/ui/modal";
 import { usePage } from "@inertiajs/react";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { FormAlert } from "@/components/FormAlert";
 
 
@@ -189,7 +188,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     resetForm();
   } catch (err: any) {
     if (err.response?.status === 422) {
-      // ✅ Handle Laravel validation errors and custom backend errors
+      //  Handle validation errors and custom backend errors
       const backendError = err.response.data?.error;
       const validationErrors = err.response.data?.errors;
 
@@ -306,7 +305,7 @@ const approveSubcourse = (id: number) => {
     <div className="p-6">
       <h2 className="text-xl font-bold mb-4">Subcourses Management</h2>
 
- {/* ✅ Show Alert if exists */}
+ {/*  Alert if exists */}
 {alert && (
   <FormAlert
     title={alert.title}
