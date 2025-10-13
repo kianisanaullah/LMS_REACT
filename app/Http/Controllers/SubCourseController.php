@@ -14,7 +14,7 @@ class SubcourseController extends Controller
         return Inertia::render('Subcourses');
     }
 
-    // ✅ Only return APPROVED subcourses
+    //  Only return APPROVED subcourses
     public function index()
     {
         return Subcourse::whereNull('DELETED_AT')
@@ -47,12 +47,28 @@ class SubcourseController extends Controller
 
     public function store(Request $request)
     {
+        // ✅ File validation with restriction
         $request->validate([
             'COURSE_ID'      => 'required|integer',
             'SUBCOURSE_NAME' => 'required|string|max:255',
             'DESCRIPTION'    => 'nullable|string',
-            'ATTACHMENTS'    => 'nullable|file|max:5120',
+            'ATTACHMENTS'    => 'nullable|file|max:5120', // 5MB
         ]);
+
+        // ✅ File type restriction check
+        if ($request->hasFile('ATTACHMENTS')) {
+            $ext = strtolower($request->file('ATTACHMENTS')->getClientOriginalExtension());
+            $allowed = ['pdf', 'png', 'doc', 'docx', 'ppt', 'pptx'];
+
+            if (!in_array($ext, $allowed)) {
+                return response()->json([
+                    'message' => 'Only Word, PowerPoint, PDF, or PNG files are allowed.',
+                    'errors' => [
+                        'ATTACHMENTS' => ['Only Word, PowerPoint, PDF, or PNG files are allowed.']
+                    ]
+                ], 422);
+            }
+        }
 
         if (!Course::where('ID', $request->COURSE_ID)->exists()) {
             return response()->json(['error' => 'Invalid COURSE_ID'], 422);
@@ -68,9 +84,9 @@ class SubcourseController extends Controller
         $subcourse->CREATED_BY     = $userId;
         $subcourse->CREATED_AT     = now();
 
-        // ✅ Auto approve if user is Admin
-       $isAdmin = auth()->user()->isAdmin ?? false;
-$subcourse->APPROVED = $isAdmin ? 1 : 0;
+        // Auto approve if Admin
+        $isAdmin = auth()->user()->isAdmin ?? false;
+        $subcourse->APPROVED = $isAdmin ? 1 : 0;
 
         if ($request->hasFile('ATTACHMENTS')) {
             $path = $request->file('ATTACHMENTS')->store('subcourses', 'public');
@@ -90,6 +106,29 @@ $subcourse->APPROVED = $isAdmin ? 1 : 0;
     public function update(Request $request, $id)
     {
         $userId = auth()->user()->id;
+
+        // ✅ Validate file and size
+        $request->validate([
+            'COURSE_ID'      => 'nullable|integer',
+            'SUBCOURSE_NAME' => 'nullable|string|max:255',
+            'DESCRIPTION'    => 'nullable|string',
+            'ATTACHMENTS'    => 'nullable|file|max:5120', // 5MB
+        ]);
+
+        // ✅ Restrict invalid file types
+        if ($request->hasFile('ATTACHMENTS')) {
+            $ext = strtolower($request->file('ATTACHMENTS')->getClientOriginalExtension());
+            $allowed = ['pdf', 'png', 'doc', 'docx', 'ppt', 'pptx'];
+
+            if (!in_array($ext, $allowed)) {
+                return response()->json([
+                    'message' => 'Only Word, PowerPoint, PDF, or PNG files are allowed.',
+                    'errors' => [
+                        'ATTACHMENTS' => ['Only Word, PowerPoint, PDF, or PNG files are allowed.']
+                    ]
+                ], 422);
+            }
+        }
 
         $data = [
             'UPDATED_BY' => $userId,
@@ -147,7 +186,7 @@ $subcourse->APPROVED = $isAdmin ? 1 : 0;
         return response()->json(['message' => 'Subcourse deleted successfully']);
     }
 
-    // ✅ Extra methods
+    //  Extra methods
 
     public function pending()
     {
@@ -157,25 +196,24 @@ $subcourse->APPROVED = $isAdmin ? 1 : 0;
             ->get();
     }
 
-public function approve($id)
-{
-    $userId = auth()->user()->id ?? 1;
+    public function approve($id)
+    {
+        $userId = auth()->user()->id ?? 1;
 
-    $data = [
-        'APPROVED'   => 1,
-        'UPDATED_BY' => $userId,
-        'UPDATED_AT' => now()->format('Y-m-d H:i:s'),
-    ];
+        $data = [
+            'APPROVED'   => 1,
+            'UPDATED_BY' => $userId,
+            'UPDATED_AT' => now()->format('Y-m-d H:i:s'),
+        ];
 
-    $updated = \DB::table('LMS.SUBCOURSES')
-        ->where('ID', $id)
-        ->update($data);
+        $updated = \DB::table('LMS.SUBCOURSES')
+            ->where('ID', $id)
+            ->update($data);
 
-    if (!$updated) {
-        return response()->json(['error' => 'Subcourse not found'], 404);
+        if (!$updated) {
+            return response()->json(['error' => 'Subcourse not found'], 404);
+        }
+
+        return response()->json(['message' => 'Subcourse approved successfully']);
     }
-
-    return response()->json(['message' => 'Subcourse approved successfully']);
-}
-
 }

@@ -41,95 +41,104 @@ class CourseController extends Controller
         return $course;
     }
 
-    // Create new course
-    public function store(Request $request)
-    {
-        $request->validate([
-            'COURSE_NAME' => 'required|string|max:255',
-            'DESCRIPTION' => 'nullable|string',
-            'SHORT_NAME'  => 'nullable|string|max:50',
-            'ATTACHMENTS' => 'nullable|file|max:5120', // 5MB
-        ]);
+   public function store(Request $request)
+{
+    $request->validate([
+        'COURSE_NAME' => 'required|string|max:255',
+        'DESCRIPTION' => 'nullable|string',
+        'SHORT_NAME'  => 'nullable|string|max:50',
+        'ATTACHMENTS' => 'nullable|file|mimes:doc,docx,ppt,pptx,pdf,png|max:5120', // Restrict file type
+    ], [
+        'ATTACHMENTS.mimes' => 'Only Word, PowerPoint, PDF, or PNG files are allowed.',
+        'ATTACHMENTS.max' => 'Attachment size must not exceed 5MB.',
+    ]);
 
-        $userId = auth()->user()->id;
+    $userId = auth()->user()->id;
 
-        // Duplicate check
-        $existsAll = Course::where('COURSE_NAME', $request->COURSE_NAME)->exists();
-        if ($existsAll) {
-            return response()->json([
-                'error' => 'Course name already exists (even in deleted records)'
-            ], 422);
-        }
-
-        $exists = Course::where('COURSE_NAME', $request->COURSE_NAME)
-            ->whereNull('DELETED_AT')
-            ->exists();
-        if ($exists) {
-            return response()->json(['error' => 'Course name already exists'], 422);
-        }
-
-        $course = new Course();
-        $course->COURSE_NAME = $request->COURSE_NAME;
-        $course->DESCRIPTION = $request->DESCRIPTION;
-        $course->SHORT_NAME  = $request->SHORT_NAME;
-        $course->USER_ID     = $userId;
-        $course->CREATED_BY  = $userId;
-        $course->CREATED_AT  = now();
-
-        if ($request->hasFile('ATTACHMENTS')) {
-            $path = $request->file('ATTACHMENTS')->store('courses', 'public');
-            $course->ATTACHMENTS = $path;
-        }
-
-        $course->save();
-
-        $course->attachment_url = $course->ATTACHMENTS
-            ? asset('storage/' . $course->ATTACHMENTS)
-            : null;
-
-        return response()->json($course, 201);
+    // Duplicate check
+    $existsAll = Course::where('COURSE_NAME', $request->COURSE_NAME)->exists();
+    if ($existsAll) {
+        return response()->json([
+            'error' => 'Course name already exists (even in deleted records)'
+        ], 422);
     }
 
-    // Update any course
-    public function update(Request $request, $id)
-    {
-        $userId = auth()->user()->id;
-
-        $data = [
-            'UPDATED_BY' => $userId,
-            'UPDATED_AT' => now()->format('Y-m-d H:i:s'),
-        ];
-
-        if ($request->has('COURSE_NAME')) {
-            $data['COURSE_NAME'] = $request->COURSE_NAME;
-        }
-        if ($request->has('SHORT_NAME')) {
-            $data['SHORT_NAME'] = $request->SHORT_NAME;
-        }
-        if ($request->has('DESCRIPTION')) {
-            $data['DESCRIPTION'] = $request->DESCRIPTION;
-        }
-
-        if ($request->hasFile('ATTACHMENTS')) {
-            $path = $request->file('ATTACHMENTS')->store('courses', 'public');
-            $data['ATTACHMENTS'] = $path;
-        }
-
-        $updated = DB::table('LMS.COURSES')
-            ->where('ID', $id)
-            ->update($data);
-
-        if (!$updated) {
-            return response()->json(['error' => 'Course not found'], 404);
-        }
-
-        $course = DB::table('LMS.COURSES')->where('ID', $id)->first();
-
-        $file = $course->ATTACHMENTS ?? $course->attachments ?? null;
-        $course->attachment_url = $file ? asset('storage/' . $file) : null;
-
-        return response()->json($course, 200);
+    $exists = Course::where('COURSE_NAME', $request->COURSE_NAME)
+        ->whereNull('DELETED_AT')
+        ->exists();
+    if ($exists) {
+        return response()->json(['error' => 'Course name already exists'], 422);
     }
+
+    $course = new Course();
+    $course->COURSE_NAME = $request->COURSE_NAME;
+    $course->DESCRIPTION = $request->DESCRIPTION;
+    $course->SHORT_NAME  = $request->SHORT_NAME;
+    $course->USER_ID     = $userId;
+    $course->CREATED_BY  = $userId;
+    $course->CREATED_AT  = now();
+
+    if ($request->hasFile('ATTACHMENTS')) {
+        $path = $request->file('ATTACHMENTS')->store('courses', 'public');
+        $course->ATTACHMENTS = $path;
+    }
+
+    $course->save();
+
+    $course->attachment_url = $course->ATTACHMENTS
+        ? asset('storage/' . $course->ATTACHMENTS)
+        : null;
+
+    return response()->json($course, 201);
+}
+
+public function update(Request $request, $id)
+{
+    $request->validate([
+        'ATTACHMENTS' => 'nullable|file|mimes:doc,docx,ppt,pptx,pdf,png|max:5120',
+    ], [
+        'ATTACHMENTS.mimes' => 'Only Word, PowerPoint, PDF, or PNG files are allowed.',
+        'ATTACHMENTS.max' => 'Attachment size must not exceed 5MB.',
+    ]);
+
+    $userId = auth()->user()->id;
+
+    $data = [
+        'UPDATED_BY' => $userId,
+        'UPDATED_AT' => now()->format('Y-m-d H:i:s'),
+    ];
+
+    if ($request->has('COURSE_NAME')) {
+        $data['COURSE_NAME'] = $request->COURSE_NAME;
+    }
+    if ($request->has('SHORT_NAME')) {
+        $data['SHORT_NAME'] = $request->SHORT_NAME;
+    }
+    if ($request->has('DESCRIPTION')) {
+        $data['DESCRIPTION'] = $request->DESCRIPTION;
+    }
+
+    if ($request->hasFile('ATTACHMENTS')) {
+        $path = $request->file('ATTACHMENTS')->store('courses', 'public');
+        $data['ATTACHMENTS'] = $path;
+    }
+
+    $updated = DB::table('LMS.COURSES')
+        ->where('ID', $id)
+        ->update($data);
+
+    if (!$updated) {
+        return response()->json(['error' => 'Course not found'], 404);
+    }
+
+    $course = DB::table('LMS.COURSES')->where('ID', $id)->first();
+
+    $file = $course->ATTACHMENTS ?? $course->attachments ?? null;
+    $course->attachment_url = $file ? asset('storage/' . $file) : null;
+
+    return response()->json($course, 200);
+}
+
 
     // Delete any course (soft delete)
     public function destroy($id)

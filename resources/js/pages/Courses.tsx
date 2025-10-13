@@ -9,6 +9,9 @@ import AppLayout from "@/layouts/app-layout";
 import { type BreadcrumbItem } from "@/types";
 import Modal from "@/components/ui/modal";
 import { usePage } from "@inertiajs/react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { FormAlert } from "@/components/FormAlert";
+
 
 
 interface Course {
@@ -38,6 +41,8 @@ export default function Courses() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 const { auth } = usePage().props as any;
 const permissions: string[] = auth?.permissions || [];
@@ -97,56 +102,73 @@ const canDelete = permissions.includes("delete-course");
 };
 
 
-const handleSubmit = (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setProcessing(true);
   setErrors({});
+  setAlertMessage(null); // clear any previous alert
 
-  const formData = new FormData();
-  formData.append("COURSE_NAME", form.COURSE_NAME);
-  formData.append("SHORT_NAME", form.SHORT_NAME);
-  formData.append("DESCRIPTION", form.DESCRIPTION);
-  if (form.ATTACHMENTS) {
-    formData.append("ATTACHMENTS", form.ATTACHMENTS);
-  }
+  try {
+    const formData = new FormData();
+    formData.append("COURSE_NAME", form.COURSE_NAME.trim());
+    formData.append("SHORT_NAME", form.SHORT_NAME.trim());
+    formData.append("DESCRIPTION", form.DESCRIPTION.trim());
+    if (form.ATTACHMENTS) {
+      formData.append("ATTACHMENTS", form.ATTACHMENTS);
+    }
 
-  let request;
-  if (form.id) {
-    formData.append("_method", "PUT");
-    request = axios.post(`/courses/${Number(form.id)}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-  } else {
-    request = axios.post("/courses", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-  }
+    let response;
 
-  request
-    .then((res) => {
-      const updated = mapCourse(res.data);
-      setCourses((prev) =>
-        form.id ? prev.map((c) => (c.ID === form.id ? updated : c)) : [updated, ...prev]
-      );
-      resetForm();
-    })
-    .catch((err) => {
-      if (err.response?.status === 422) {
-        //  Custom backend duplicate error
-        const msg = err.response.data?.error;
-        if (msg) {
-          alert(msg); 
-          return;
-        }
+    // Check if it's an update or create
+    if (form.id) {
+      formData.append("_method", "PUT");
+      response = await axios.post(`/courses/${Number(form.id)}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    } else {
+      response = await axios.post("/courses", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    }
 
-        // Laravel validation errors
-        setErrors(err.response.data?.errors || {});
-      } else {
-        console.error(err);
+    const updated = mapCourse(response.data);
+
+    // Update or prepend the course
+    setCourses((prev) =>
+      form.id
+        ? prev.map((c) => (Number(c.ID) === Number(form.id) ? updated : c))
+        : [updated, ...prev]
+    );
+
+    resetForm();
+  } catch (err: any) {
+    if (err.response?.status === 422) {
+      const msg = err.response.data?.error;
+
+      if (msg) {
+        // show backend custom message in UI alert
+        setAlertMessage(msg);
+        return;
       }
-    })
-    .finally(() => setProcessing(false));
+
+      // Laravel validation-style errors
+      const validationErrors = err.response.data?.errors || {};
+      setErrors(validationErrors);
+
+      // show attachment or other field error in alert box
+      if (validationErrors.ATTACHMENTS?.length) {
+        setAlertMessage(validationErrors.ATTACHMENTS[0]);
+      }
+    } else {
+      console.error("Error submitting form:", err);
+      setAlertMessage("An unexpected error occurred. Please try again.");
+    }
+  } finally {
+    setProcessing(false);
+  }
 };
+
+
 
 
   const handleEdit = (course: Course) => {
@@ -174,6 +196,15 @@ return (
 
     <div className="p-6">
       <h2 className="text-xl font-bold mb-4">Courses Management</h2>
+{alertMessage && (
+  <FormAlert
+    title="Error"
+    message={alertMessage}
+    variant="destructive"
+    onDismiss={() => setAlertMessage(null)}
+  />
+)}
+
 
       {/* Form */}
       <form

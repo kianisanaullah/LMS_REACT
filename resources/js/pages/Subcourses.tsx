@@ -10,6 +10,7 @@ import { type BreadcrumbItem } from "@/types";
 import Modal from "@/components/ui/modal";
 import { usePage } from "@inertiajs/react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { FormAlert } from "@/components/FormAlert";
 
 
 
@@ -131,36 +132,34 @@ const canDelete = permissions.includes("delete-subcourse");
   }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setProcessing(true);
-    setErrors({});
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setProcessing(true);
+  setErrors({});
+  setAlert(null); // clear any previous alerts
 
+  try {
     const formData = new FormData();
     if (form.COURSE_ID) formData.append("COURSE_ID", String(form.COURSE_ID));
-    formData.append("SUBCOURSE_NAME", form.SUBCOURSE_NAME);
-    formData.append("DESCRIPTION", form.DESCRIPTION);
-
+    formData.append("SUBCOURSE_NAME", form.SUBCOURSE_NAME.trim());
+    formData.append("DESCRIPTION", form.DESCRIPTION.trim());
     if (form.ATTACHMENTS) {
       formData.append("ATTACHMENTS", form.ATTACHMENTS);
     }
 
-    let request;
+    let response;
     if (form.id) {
       formData.append("_method", "PUT");
-      request = axios.post(`/subcourses/${Number(form.id)}`, formData, {
+      response = await axios.post(`/subcourses/${Number(form.id)}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
     } else {
-      request = axios.post("/subcourses", formData, {
+      response = await axios.post("/subcourses", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
     }
 
-  request
-  .then((res) => {
-    const updated = mapSubcourse(res.data);
-
+    const updated = mapSubcourse(response.data);
     const course = courses.find((c) => c.ID === updated.COURSE_ID);
     if (course) updated.COURSE_NAME = course.COURSE_NAME;
 
@@ -170,43 +169,66 @@ const canDelete = permissions.includes("delete-subcourse");
         : [updated, ...prev]
     );
 
-    // ✅ Show alert based on approval status
     if (updated.APPROVED === 0) {
       setAlert({
         title: "Pending Approval",
-        description: "Subcourse created successfully, pending admin approval.",
+        description:
+          "Subcourse created successfully, pending admin approval.",
         variant: "default",
       });
     } else {
       setAlert({
         title: "Success",
-        description: "Subcourse created and approved successfully.",
+        description: form.id
+          ? "Subcourse updated successfully."
+          : "Subcourse created and approved successfully.",
         variant: "default",
       });
     }
 
     resetForm();
-  })
-  .catch((err) => {
+  } catch (err: any) {
     if (err.response?.status === 422) {
-      setErrors(err.response.data.errors || {});
+      // ✅ Handle Laravel validation errors and custom backend errors
+      const backendError = err.response.data?.error;
+      const validationErrors = err.response.data?.errors;
+
+      if (backendError) {
+        setAlert({
+          title: "Validation Error",
+          description: backendError,
+          variant: "destructive",
+        });
+      } else if (validationErrors) {
+        // show first validation message in alert
+        const firstKey = Object.keys(validationErrors)[0];
+        const firstMsg = validationErrors[firstKey][0];
+        setAlert({
+          title: "Validation Error",
+          description: firstMsg,
+          variant: "destructive",
+        });
+      }
+      setErrors(validationErrors || {});
     } else if (err.response?.status === 403) {
       setAlert({
         title: "Forbidden",
-        description: "You don’t have permission to create a subcourse.",
+        description: "You don’t have permission to create or update subcourses.",
         variant: "destructive",
       });
     } else {
-      console.error(err);
+      console.error("Unexpected error:", err);
       setAlert({
         title: "Error",
-        description: "Something went wrong while creating the subcourse.",
+        description: "Something went wrong. Please try again later.",
         variant: "destructive",
       });
     }
-  })
-  .finally(() => setProcessing(false));
+  } finally {
+    setProcessing(false);
   }
+};
+
 
   const handleEdit = (sub: Subcourse) => {
     setForm({
@@ -285,12 +307,15 @@ const approveSubcourse = (id: number) => {
       <h2 className="text-xl font-bold mb-4">Subcourses Management</h2>
 
  {/* ✅ Show Alert if exists */}
-      {alert && (
-        <Alert variant={alert.variant} className="mb-4">
-          <AlertTitle>{alert.title}</AlertTitle>
-          <AlertDescription>{alert.description}</AlertDescription>
-        </Alert>
-      )}
+{alert && (
+  <FormAlert
+    title={alert.title}
+    message={alert.description}
+    variant={alert.variant}
+    onDismiss={() => setAlert(null)}
+  />
+)}
+
       {/* Form */}
       <form
         onSubmit={handleSubmit}
