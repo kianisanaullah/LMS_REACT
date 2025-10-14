@@ -196,6 +196,22 @@ class SubcourseController extends Controller
             ->get();
     }
 
+    public function disapproved()
+{
+    return Subcourse::whereNull('DELETED_AT')
+        ->where('APPROVED', 2) //  Show disapproved only
+        ->with('course')
+        ->get()
+        ->map(function ($subcourse) {
+            $subcourse->course_name = $subcourse->course ? $subcourse->course->COURSE_NAME : null;
+            $subcourse->attachment_url = $subcourse->ATTACHMENTS
+                ? asset('storage/' . $subcourse->ATTACHMENTS)
+                : null;
+            return $subcourse;
+        });
+}
+
+
     public function approve($id)
     {
         $userId = auth()->user()->id ?? 1;
@@ -216,4 +232,25 @@ class SubcourseController extends Controller
 
         return response()->json(['message' => 'Subcourse approved successfully']);
     }
+    public function disapprove($id)
+{
+    $userId = auth()->user()->id ?? 1;
+
+    $data = [
+        'APPROVED'   => 2, //  2 means disapproved
+        'UPDATED_BY' => $userId,
+        'UPDATED_AT' => now()->format('Y-m-d H:i:s'),
+    ];
+
+    $updated = \DB::table('LMS.SUBCOURSES')
+        ->where('ID', $id)
+        ->update($data);
+
+    if (!$updated) {
+        return response()->json(['error' => 'Subcourse not found'], 404);
+    }
+
+    return response()->json(['message' => 'Subcourse disapproved successfully']);
+}
+
 }

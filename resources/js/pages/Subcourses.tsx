@@ -247,12 +247,14 @@ const handleSubmit = async (e: React.FormEvent) => {
   };
 
 const [pending, setPending] = useState<Subcourse[]>([]);
+const [disapproved, setDisapproved] = useState<Subcourse[]>([]);
 
 
 const canApprove = permissions.includes("approve-subcourse");
 
 useEffect(() => {
   if (canApprove) {
+    // Fetch pending
     axios.get("/subcourses/pending")
       .then((res) => {
         setPending(res.data.map((s: any) => {
@@ -266,8 +268,25 @@ useEffect(() => {
           console.warn("Not allowed to fetch pending subcourses");
         }
       });
+
+    // Fetch disapproved
+    axios.get("/subcourses/disapproved")
+      .then((res) => {
+        setDisapproved(res.data.map((s: any) => {
+          const mapped = mapSubcourse(s);
+          const course = courses.find(c => c.ID === mapped.COURSE_ID);
+          return { ...mapped, COURSE_NAME: course?.COURSE_NAME || null };
+        }));
+      })
+      .catch((err) => {
+        if (err.response?.status === 403) {
+          console.warn("Not allowed to fetch disapproved subcourses");
+        }
+      });
   }
 }, [canApprove, courses]);
+
+
 
 
 
@@ -296,6 +315,38 @@ const approveSubcourse = (id: number) => {
       });
     });
 };
+
+const disapproveSubcourse = (id: number) => {
+  axios.post(`/subcourses/${id}/disapprove`)
+    .then(() => {
+      // Remove from pending list
+      setPending((prev) => prev.filter((s) => s.ID !== id));
+
+      // Re-fetch disapproved list to ensure backend data is fresh
+      axios.get("/subcourses/disapproved")
+        .then((res) => {
+          setDisapproved(res.data.map((s: any) => {
+            const mapped = mapSubcourse(s);
+            const course = courses.find(c => c.ID === mapped.COURSE_ID);
+            return { ...mapped, COURSE_NAME: course?.COURSE_NAME || null };
+          }));
+        });
+
+      setAlert({
+        title: "Disapproved",
+        description: "Subcourse disapproved successfully.",
+        variant: "default",
+      });
+    })
+    .catch(() => {
+      setAlert({
+        title: "Error",
+        description: "Could not disapprove the subcourse.",
+        variant: "destructive",
+      });
+    });
+};
+
 
 
  return (
@@ -430,7 +481,7 @@ const approveSubcourse = (id: number) => {
               {s.COURSE_NAME || "No course name"}
             </p>
           </div>
-        <div className="flex gap-2">
+       <div className="flex gap-2">
   <button
     onClick={() => setSelectedSubcourse(s)}
     className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"
@@ -444,13 +495,49 @@ const approveSubcourse = (id: number) => {
   >
     Approve
   </button>
+
+  <button
+    onClick={() => disapproveSubcourse(s.ID)}
+    className="px-3 py-1 rounded-md text-white text-sm bg-red-600 hover:bg-red-500 transition"
+  >
+    Disapprove
+  </button>
 </div>
+
 
         </div>
       ))}
     </div>
   </div>
 )}
+
+{/* Disapproved Subcourses Section */}
+{canApprove && disapproved.length > 0 && (
+  <div className="mb-6">
+    <h3 className="text-lg font-semibold mb-3 text-red-700 dark:text-red-400">
+      Disapproved Subcourses
+    </h3>
+    <div className="space-y-3">
+      {disapproved.map((s: Subcourse) => (
+        <div key={s.ID} className="flex items-center justify-between border rounded p-3 bg-red-50 dark:bg-red-900">
+          <div>
+            <h4 className="font-medium">{s.SUBCOURSE_NAME}</h4>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              {s.COURSE_NAME || "No course name"}
+            </p>
+          </div>
+          <button
+            onClick={() => setSelectedSubcourse(s)}
+            className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"
+          >
+            View
+          </button>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
 
 
 

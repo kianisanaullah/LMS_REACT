@@ -45,44 +45,57 @@ Route::middleware(['auth', 'attach.roles'])->group(function () {
         ->name('courses.show');
 
 
-    // =======================
-    // Subcourses
-    // =======================
-    // =======================
+ // =======================
 // Subcourses
 // =======================
+
+// Main page
 Route::get('/subcourses', [SubcourseController::class, 'indexPage'])
     ->name('subcourses.page')
     ->middleware('must.have:view-subcourse');
 
+// List all subcourses
 Route::get('/subcourses/list', [SubcourseController::class, 'index'])
     ->middleware('must.have:view-subcourse');
 
+// Create new subcourse
 Route::post('/subcourses', [SubcourseController::class, 'store'])
     ->name('subcourses.store')
     ->middleware('must.have:create-subcourse');
 
-// ✅ Put specific routes BEFORE the {id} catch-all
+// ✅ Specific routes must come BEFORE {id}
 Route::get('/subcourses/pending', [SubcourseController::class, 'pending'])
     ->name('subcourses.pending')
-    ->middleware('must.have:approve-subcourse'); 
+    ->middleware('must.have:approve-subcourse');
+
+Route::get('/subcourses/disapproved', [SubcourseController::class, 'disapproved'])
+    ->name('subcourses.disapproved')
+    ->middleware('must.have:approve-subcourse');
 
 Route::post('/subcourses/{id}/approve', [SubcourseController::class, 'approve'])
     ->name('subcourses.approve')
     ->middleware('must.have:approve-subcourse');
 
-// ⬇️ Now the wildcard route
+Route::post('/subcourses/{id}/disapprove', [SubcourseController::class, 'disapprove'])
+    ->name('subcourses.disapprove')
+    ->middleware('must.have:approve-subcourse');
+
+// ✅ Generic routes come last
 Route::get('/subcourses/{id}', [SubcourseController::class, 'show'])
+    ->where('id', '[0-9]+') // prevent "disapproved" from being treated as ID
     ->name('subcourses.show')
     ->middleware('must.have:view-subcourse');
 
 Route::put('/subcourses/{id}', [SubcourseController::class, 'update'])
+    ->where('id', '[0-9]+')
     ->name('subcourses.update')
     ->middleware('must.have:edit-subcourse');
 
 Route::delete('/subcourses/{id}', [SubcourseController::class, 'destroy'])
+    ->where('id', '[0-9]+')
     ->name('subcourses.destroy')
     ->middleware('must.have:delete-subcourse');
+
 
 
 
