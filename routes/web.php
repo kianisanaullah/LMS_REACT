@@ -18,85 +18,81 @@ Route::get('/', function () {
 // Authenticated + roles attached
 // =======================
 Route::middleware(['auth', 'attach.roles'])->group(function () {
-    // =======================
-    // Courses
-    // =======================
-    Route::get('/courses', [CourseController::class, 'indexPage'])
-        ->name('courses.page')
-        ->middleware('must.have:view-course');
 
-    Route::get('/courses/list', [CourseController::class, 'index'])
-        ->middleware('must.have:view-course');
-
-    Route::post('/courses', [CourseController::class, 'store'])
-        ->middleware('must.have:create-course')
-        ->name('courses.store');
-
-    Route::put('/courses/{id}', [CourseController::class, 'update'])
-        ->middleware('must.have:edit-course')
-        ->name('courses.update');
-
-    Route::delete('/courses/{id}', [CourseController::class, 'destroy'])
-        ->middleware('must.have:delete-course')
-        ->name('courses.destroy');
-
-    Route::get('/courses/{id}', [CourseController::class, 'show'])
-        ->middleware('must.have:view-course')
-        ->name('courses.show');
-
-
- // =======================
-// Subcourses
+  // =======================
+// Courses
 // =======================
+Route::get('/courses', [CourseController::class, 'indexPage'])
+    ->name('courses.page')
+    ->middleware('must.have:view-course');
 
-// Main page
-Route::get('/subcourses', [SubcourseController::class, 'indexPage'])
-    ->name('subcourses.page')
-    ->middleware('must.have:view-subcourse');
+Route::get('/courses/list', [CourseController::class, 'index'])
+    ->middleware('must.have:view-course');
 
-// List all subcourses
-Route::get('/subcourses/list', [SubcourseController::class, 'index'])
-    ->middleware('must.have:view-subcourse');
+Route::get('/courses/count', [CourseController::class, 'countCourses'])
+    ->name('courses.count')
+    ->middleware('auth'); // anyone logged in can see count
 
-// Create new subcourse
-Route::post('/subcourses', [SubcourseController::class, 'store'])
-    ->name('subcourses.store')
-    ->middleware('must.have:create-subcourse');
+Route::post('/courses', [CourseController::class, 'store'])
+    ->middleware('must.have:create-course')
+    ->name('courses.store');
 
-// ✅ Specific routes must come BEFORE {id}
-Route::get('/subcourses/pending', [SubcourseController::class, 'pending'])
-    ->name('subcourses.pending')
-    ->middleware('must.have:approve-subcourse');
+Route::put('/courses/{id}', [CourseController::class, 'update'])
+    ->middleware('must.have:edit-course')
+    ->name('courses.update');
 
-Route::get('/subcourses/disapproved', [SubcourseController::class, 'disapproved'])
-    ->name('subcourses.disapproved')
-    ->middleware('must.have:approve-subcourse');
+Route::delete('/courses/{id}', [CourseController::class, 'destroy'])
+    ->middleware('must.have:delete-course')
+    ->name('courses.destroy');
 
-Route::post('/subcourses/{id}/approve', [SubcourseController::class, 'approve'])
-    ->name('subcourses.approve')
-    ->middleware('must.have:approve-subcourse');
+Route::get('/courses/{id}', [CourseController::class, 'show'])
+    ->middleware('must.have:view-course')
+    ->name('courses.show');
 
-Route::post('/subcourses/{id}/disapprove', [SubcourseController::class, 'disapprove'])
-    ->name('subcourses.disapprove')
-    ->middleware('must.have:approve-subcourse');
+    // =======================
+    // Subcourses
+    // =======================
+    Route::get('/subcourses', [SubcourseController::class, 'indexPage'])
+        ->name('subcourses.page')
+        ->middleware('must.have:view-subcourse');
 
-// ✅ Generic routes come last
-Route::get('/subcourses/{id}', [SubcourseController::class, 'show'])
-    ->where('id', '[0-9]+') // prevent "disapproved" from being treated as ID
-    ->name('subcourses.show')
-    ->middleware('must.have:view-subcourse');
+    Route::get('/subcourses/list', [SubcourseController::class, 'index'])
+        ->middleware('must.have:view-subcourse');
 
-Route::put('/subcourses/{id}', [SubcourseController::class, 'update'])
-    ->where('id', '[0-9]+')
-    ->name('subcourses.update')
-    ->middleware('must.have:edit-subcourse');
+    Route::post('/subcourses', [SubcourseController::class, 'store'])
+        ->name('subcourses.store')
+        ->middleware('must.have:create-subcourse');
 
-Route::delete('/subcourses/{id}', [SubcourseController::class, 'destroy'])
-    ->where('id', '[0-9]+')
-    ->name('subcourses.destroy')
-    ->middleware('must.have:delete-subcourse');
+    Route::get('/subcourses/pending', [SubcourseController::class, 'pending'])
+        ->name('subcourses.pending')
+        ->middleware('must.have:approve-subcourse');
 
+    Route::get('/subcourses/disapproved', [SubcourseController::class, 'disapproved'])
+        ->name('subcourses.disapproved')
+        ->middleware('must.have:approve-subcourse');
 
+    Route::post('/subcourses/{id}/approve', [SubcourseController::class, 'approve'])
+        ->name('subcourses.approve')
+        ->middleware('must.have:approve-subcourse');
+
+    Route::post('/subcourses/{id}/disapprove', [SubcourseController::class, 'disapprove'])
+        ->name('subcourses.disapprove')
+        ->middleware('must.have:approve-subcourse');
+
+    Route::get('/subcourses/{id}', [SubcourseController::class, 'show'])
+        ->where('id', '[0-9]+')
+        ->name('subcourses.show')
+        ->middleware('must.have:view-subcourse');
+
+    Route::put('/subcourses/{id}', [SubcourseController::class, 'update'])
+        ->where('id', '[0-9]+')
+        ->name('subcourses.update')
+        ->middleware('must.have:edit-subcourse');
+
+    Route::delete('/subcourses/{id}', [SubcourseController::class, 'destroy'])
+        ->where('id', '[0-9]+')
+        ->name('subcourses.destroy')
+        ->middleware('must.have:delete-subcourse');
 
 
     // =======================
@@ -115,7 +111,11 @@ Route::delete('/subcourses/{id}', [SubcourseController::class, 'destroy'])
         Route::get('/users/{id}/roles', [UserRoleController::class, 'getUserRoles'])->name('users.roles');
         Route::post('/users/{id}/roles', [UserRoleController::class, 'assignRoles'])->name('users.roles.assign');
         Route::delete('/users/{id}/roles/{roleId}', [UserRoleController::class, 'removeRole'])->name('users.roles.remove');
+
+        //  Count roles (Admins only)
+        Route::get('/users/roles/count', [UserRoleController::class, 'countRoles'])->name('users.roles.count');
     });
+
 
     // =======================
     // Permissions
@@ -135,12 +135,10 @@ Route::delete('/subcourses/{id}', [SubcourseController::class, 'destroy'])
     // =======================
     Route::get('/users', [UserController::class, 'indexPage'])->name('users.page');
     Route::get('/users/list', [UserController::class, 'index']);
-
-    Route::get('/users/create', fn () => Inertia::render('UserCreate'))
-        ->name('users.create');
-
+    Route::get('/users/create', fn () => Inertia::render('UserCreate'))->name('users.create');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
 });
+
 
 // =======================
 // Debug / Misc

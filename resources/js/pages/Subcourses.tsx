@@ -239,12 +239,38 @@ const handleSubmit = async (e: React.FormEvent) => {
     });
   };
 
-  const handleDelete = (id: number) => {
-    if (!confirm("Are you sure?")) return;
-    axios.delete(`/subcourses/${id}`).then(() => {
-      setSubcourses((prev) => prev.filter((s) => s.ID !== id));
+const handleDelete = (id: number, isDisapproved = false) => {
+  if (!confirm("Are you sure you want to delete this subcourse?")) return;
+
+  axios
+    .delete(`/subcourses/${id}`)
+    .then(() => {
+      // ✅ Remove from main or disapproved list instantly
+      if (isDisapproved) {
+        setDisapproved((prev) => prev.filter((s) => s.ID !== id));
+        setAlert({
+          title: "Deleted",
+          description: "Disapproved subcourse has been deleted successfully.",
+          variant: "default",
+        });
+      } else {
+        setSubcourses((prev) => prev.filter((s) => s.ID !== id));
+        setAlert({
+          title: "Deleted",
+          description: "Subcourse has been deleted successfully.",
+          variant: "default",
+        });
+      }
+    })
+    .catch(() => {
+      setAlert({
+        title: "Error",
+        description: "Could not delete the subcourse. Please try again.",
+        variant: "destructive",
+      });
     });
-  };
+};
+
 
 const [pending, setPending] = useState<Subcourse[]>([]);
 const [disapproved, setDisapproved] = useState<Subcourse[]>([]);
@@ -526,12 +552,23 @@ const disapproveSubcourse = (id: number) => {
               {s.COURSE_NAME || "No course name"}
             </p>
           </div>
-          <button
-            onClick={() => setSelectedSubcourse(s)}
-            className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"
-          >
-            View
-          </button>
+        <div className="flex gap-2">
+            {/* View Button */}
+            <button
+              onClick={() => setSelectedSubcourse(s)}
+              className="px-3 py-1 rounded-md text-white text-sm bg-gray-700 hover:bg-gray-600 transition"
+            >
+              View
+            </button>
+
+            {/* Delete Button */}
+            <button
+              onClick={() => handleDelete(s.ID, true)}
+              className="px-3 py-1 rounded-md text-white text-sm bg-red-600 hover:bg-red-500 transition"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       ))}
     </div>

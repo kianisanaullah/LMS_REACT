@@ -8,6 +8,8 @@ import axios from "axios";
 import AppLayout from "@/layouts/app-layout";
 import { type BreadcrumbItem } from "@/types";
 import Modal from "@/components/ui/modal";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 interface Role {
   ROLE_ID: number;
@@ -52,6 +54,9 @@ export default function Roles() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userRoles, setUserRoles] = useState<number[]>([]);
   const [assigningRole, setAssigningRole] = useState(false);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+const [alertType, setAlertType] = useState<"success" | "error" | null>(null);
+
 
   const [form, setForm] = useState<FormState>({
     id: null,
@@ -218,17 +223,39 @@ const toggleUserRole = (roleId: number) => {
 const saveUserRoles = () => {
   if (!selectedUser) return;
   setAssigningRole(true);
+  setAlertMessage(null); // clear previous alerts
 
   axios
     .post(`/users/${selectedUser.id}/roles`, {
-      roles: userRoles, // send all selected role IDs at once
+      roles: userRoles,
     })
     .then(() => {
-      setSelectedUser(null);
-      setUserRoles([]);
+      return axios.get(`/users/${selectedUser.id}/roles`);
     })
-    .finally(() => setAssigningRole(false));
+    .then((res) => {
+      const latestRoles = res.data.map((r: any) => Number(r.role_id));
+      setUserRoles(latestRoles);
+      setAlertType("success");
+      setAlertMessage("Roles updated successfully!");
+    })
+    .catch(() => {
+      setAlertType("error");
+      setAlertMessage(" Error updating roles. Please try again.");
+    })
+    .finally(() => {
+      setAssigningRole(false);
+    });
 };
+useEffect(() => {
+  if (alertMessage) {
+    const timer = setTimeout(() => {
+      setAlertMessage(null);
+      setAlertType(null);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }
+}, [alertMessage]);
+
 
   // ----------------- RENDER -----------------
 
@@ -238,6 +265,7 @@ const saveUserRoles = () => {
 
       <div className="p-6">
         <h2 className="text-xl font-bold mb-4">Roles Management</h2>
+
 
         {/* Form */}
         <form
@@ -272,6 +300,12 @@ const saveUserRoles = () => {
             </Button>
           )}
         </form>
+        {alertMessage && (
+  <Alert className={`mt-3 ${alertType === "success" ? "bg-green-50 border-green-500 text-green-800" : "bg-red-50 border-red-500 text-red-800"}`}>
+    <AlertTitle>{alertType === "success" ? "Success" : "Error"}</AlertTitle>
+    <AlertDescription>{alertMessage}</AlertDescription>
+  </Alert>
+)}
 
         {/* Roles Table */}
         <div className="w-full overflow-x-auto mb-10">

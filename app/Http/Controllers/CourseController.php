@@ -160,4 +160,12 @@ public function update(Request $request, $id)
 
         return response()->json(['message' => 'Course deleted successfully']);
     }
+
+    public function countCourses()
+{
+    $total = \App\Models\Course::whereNull('DELETED_AT')->count();
+
+    return response()->json(['total_courses' => $total]);
+}
+
 }
